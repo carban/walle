@@ -98,8 +98,8 @@
 
 ## Fase 8 — Documentación de la característica
 
-- [ ] **T-034** Actualizar `README.md` con la sección de ejecución de la API (`uv run uvicorn walle.main:app --reload`) y la variable `OPENROUTER_API_KEY`.
-- [ ] **T-035** Registrar en `docs/Cuestionario.md` las respuestas que se cierren durante la implementación (modelo, guardrails, fallback).
+- [x] **T-034** Actualizar `README.md` con la sección de ejecución de la API (`uv run uvicorn walle.main:app --reload`) y la variable `OPENROUTER_API_KEY`.
+- [x] **T-035** Registrar en `docs/Cuestionario.md` las respuestas que se cierren durante la implementación (modelo, guardrails, fallback).
 - [x] **T-036** Verificar trazabilidad: cada RF/RNF de `especificacion.md` tiene al menos una prueba que lo cubre (revisión de la matriz §8).
 
 ---

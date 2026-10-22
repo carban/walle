@@ -60,7 +60,7 @@
 - [x] **T-117** Actualizar `README.md` con la sección de persistencia: dónde vive la base, cómo se inspecciona, cómo se respalda y cómo se borra.
 - [x] **T-118** Registrar en `docs/Cuestionario.md` las respuestas de persistencia (mecanismo, elección, motor futuro y razonamiento).
 - [x] **T-119** Revisar la matriz de trazabilidad §8 de la especificación: cada RF/RNF con al menos una prueba.
-- [ ] **T-120** Actualizar `constitucion/constitucion.md` con la decisión registrada del esquema (D-07) si el responsable lo aprueba.
+- [x] **T-120** Actualizar `constitucion/constitucion.md` con la decisión registrada del esquema (D-07) si el responsable lo aprueba.
 
 ---
 

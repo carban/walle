@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -168,6 +168,9 @@ def _montar_frontend(app: FastAPI) -> None:
     @app.get("/{ruta:path}", include_in_schema=False)
     async def aplicacion(ruta: str) -> FileResponse:
         """Sirve el index del frontend para cualquier ruta del cliente."""
+        if ruta.startswith("api"):
+            # Las rutas de la API que no existen deben seguir siendo 404.
+            raise HTTPException(status_code=404, detail="Recurso no encontrado.")
         return FileResponse(directorio / "index.html")
 
 

@@ -79,3 +79,6 @@ Cualquier desviación de esta constitución se documenta como decisión explíci
 | D-04 | Estructura con `src/` en la raíz del repositorio | Aceptada | 2026-10-21 |
 | D-05 | Persistencia local SQLite en `storage/` | Aceptada | 2026-10-21 |
 | D-06 | Frontend React + npm, estilo ChatGPT con panel lateral de historial | Aceptada | 2026-10-21 |
+| D-07 | Esquema de la tabla `consultas`: `id`, `pregunta`, `fecha_hora`, `respuesta`, `fuentes` (JSON), `estado`, `duracion_ms`, `modelo` (sin `correlation_id`) | Aceptada | 2026-10-21 |
+| D-08 | Historial consultable por listado y por índice, con borrado por índice (sin borrado masivo) | Aceptada | 2026-10-21 |
+| D-09 | Se registra también la consulta bloqueada por seguridad, guardando el mensaje genérico | Aceptada | 2026-10-21 |
