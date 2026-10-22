@@ -21,18 +21,24 @@ const urlRespaldo = (import.meta.env.VITE_API_URL_FALLBACK ?? 'http://127.0.0.1:
 )
 
 async function enviar(camino: string, opciones: RequestInit | undefined, prefijo: string) {
+  const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' }
   try {
-    return await fetch(`${prefijo}${camino}`, {
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      ...opciones,
-    })
-  } catch (error) {
-    if (prefijo) throw error
-    // Sin servidor en este origen: se reintenta contra la API directa.
-    return fetch(`${urlRespaldo}${camino}`, {
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      ...opciones,
-    })
+    return await fetch(`${prefijo}${camino}`, { headers: cabeceras, ...opciones })
+  } catch {
+    if (prefijo) {
+      throw new ErrorServidor(
+        `No se pudo conectar con el servidor en ${prefijo}. Comprueba que la API esté levantada.`,
+      )
+    }
+    // El origen actual no tiene servidor: se reintenta contra la API directa.
+    try {
+      return await fetch(`${urlRespaldo}${camino}`, { headers: cabeceras, ...opciones })
+    } catch {
+      throw new ErrorServidor(
+        `No se pudo contactar la API en ${urlRespaldo}. ¿Está levantada? ` +
+          'Levántala con: uv run uvicorn walle.main:app --port 8000',
+      )
+    }
   }
 }
 
@@ -58,6 +64,13 @@ async function procesar<T>(respuesta: Response): Promise<T> {
   }
 
   if (!respuesta.ok) {
+    // El proxy de Vite responde 502/503/504 cuando no consigue hablar con la API.
+    if ([502, 503, 504].includes(respuesta.status)) {
+      throw new ErrorServidor(
+        `No se pudo contactar la API en ${urlRespaldo}. ¿Está levantada? ` +
+          'Levántala con: uv run uvicorn walle.main:app --port 8000',
+      )
+    }
     throw new ErrorServidor('El servidor no pudo completar la consulta. Inténtalo de nuevo.')
   }
 

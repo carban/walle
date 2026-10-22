@@ -54,6 +54,12 @@ describe('Cliente HTTP de la API', () => {
     await expect(consultar('x')).rejects.toBeInstanceOf(ErrorServidor)
   })
 
+  it('explica que la API no esta levantada cuando el proxy no llega a ella', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuestaJson({ detail: 'error' }, 502)))
+
+    await expect(obtenerHistorial()).rejects.toThrow(/uv run uvicorn/)
+  })
+
   it('reintenta contra la API directa si el origen no responde', async () => {
     const fetchMock = vi
       .fn()

@@ -124,10 +124,18 @@ def crear_aplicacion(
     async def identificador_correlacion(
         request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        """Asigna un identificador de correlacion a cada peticion."""
+        """Asigna un identificador de correlacion y evita respuestas cacheadas.
+
+        Sin `Cache-Control: no-store`, el navegador puede guardar un fallo ancien del
+        proxy (por ejemplo, un 502 de cuando la API no estaba levantada) y seguir
+        mostrando un panel vacio aunque la API ya funcione.
+        """
         with correlacion(nueva_correlacion()) as identificador:
             respuesta = await call_next(request)
             respuesta.headers["X-Correlation-ID"] = identificador
+            if request.url.path.startswith(("/api", "/health")):
+                respuesta.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+                respuesta.headers["Pragma"] = "no-cache"
             return respuesta
 
     @app.exception_handler(Exception)
@@ -148,6 +156,13 @@ def crear_aplicacion(
                 "correlacion": obtener_correlacion() or "-",
             },
         )
+
+    @app.get("/health", tags=["walle"], summary="Sonda de disponibilidad")
+    async def health() -> dict[str, str]:
+        """Sonda simple para-balanceadores y herramientas de supervision."""
+        from walle import __version__
+
+        return {"estado": "ok", "servicio": "walle-api", "version": __version__}
 
     @app.get("/", tags=["walle"], summary="Identificacion del servicio")
     async def raiz() -> dict[str, str]:

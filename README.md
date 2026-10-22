@@ -147,7 +147,8 @@ uv run uvicorn walle.main:app --reload --port 8000
 ```
 
 Al abrir <http://127.0.0.1:8000> se ve la identificación del servicio en JSON; la documentación
-interactiva de la API está en <http://127.0.0.1:8000/docs>.
+interactiva de la API está en <http://127.0.0.1:8000/docs> y la sonda de disponibilidad en
+`/health`.
 
 ```json
 {
@@ -156,6 +157,7 @@ interactiva de la API está en <http://127.0.0.1:8000/docs>.
   "consultar": "/api/consultar",
   "historial": "/api/historial",
   "salud": "/api/salud",
+  "health": "/health",
   "documentacion": "/docs",
   "frontend": "http://localhost:5173"
 }
