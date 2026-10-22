@@ -246,3 +246,102 @@ def test_secciones_microseguros_son_especificas() -> None:
     assert not seleccion.vacia
     resultado = seleccion.resultados[0]
     assert "Portafolio de Microseguros > Accidente Personal Esencial" in resultado.secciones
+
+
+def _corpus_con(*nombres: str) -> object:
+    from pathlib import Path
+
+    from walle.recuperacion.corpus import cargar_corpus
+
+    raiz = Path(__file__).resolve().parents[3]
+    return cargar_corpus(directorio=raiz / "Data", permitidos=nombres)
+
+
+def _resultado_de(seleccion: object, nombre: str) -> object:
+    return next(
+        resultado
+        for resultado in seleccion.resultados  # type: ignore[attr-defined]
+        if resultado.documento.nombre == nombre
+    )
+
+
+def test_seccion_usa_el_titulo_cuando_el_texto_no_lo_repite() -> None:
+    """La seccion "Vida Protegida" solo se encuentra por su titulo.
+
+    El texto de la seccion no vuelve a decir "vida"; si el indice de secciones
+    solo mira el texto, la cita cae en el encabezado vacio del documento.
+    """
+    from walle.recuperacion.relevance import seleccionar_documentos
+
+    corpus = _corpus_con("Portafolio de Microseguros.md")
+    seleccion = seleccionar_documentos(corpus, "¿Qué cubre el microseguro de vida?")
+
+    assert not seleccion.vacia
+    assert "Portafolio de Microseguros > Vida Protegida" in seleccion.resultados[0].secciones
+
+
+def test_seccion_de_reclamacion_es_especifica() -> None:
+    """Una consulta en singular debe citar la seccion "Reclamaciones"."""
+    from walle.recuperacion.relevance import seleccionar_documentos
+
+    corpus = _corpus_con(
+        "Manual del Asesor Comercial.md",
+        "Políticas de Atención.md",
+        "Portafolio de Microseguros.md",
+        "Procedimientos Operativos.md",
+        "Productos de Crédito.md",
+    )
+    seleccion = seleccionar_documentos(corpus, "¿Cómo hago una reclamación?")
+
+    assert not seleccion.vacia
+    resultado = _resultado_de(seleccion, "Portafolio de Microseguros.md")
+    assert "Portafolio de Microseguros > Reclamaciones" in resultado.secciones
+
+
+def test_secciones_de_politicas_incluyen_las_politicas_especificas() -> None:
+    """La consulta general de politicas debe citar las secciones de politica."""
+    from walle.recuperacion.relevance import seleccionar_documentos
+
+    corpus = _corpus_con(
+        "Manual del Asesor Comercial.md",
+        "Políticas de Atención.md",
+        "Portafolio de Microseguros.md",
+        "Procedimientos Operativos.md",
+        "Productos de Crédito.md",
+    )
+    seleccion = seleccionar_documentos(
+        corpus, "¿Cuál es la política de atención para clientes?"
+    )
+
+    assert not seleccion.vacia
+    resultado = _resultado_de(seleccion, "Políticas de Atención.md")
+    assert "Políticas de Atención > Política de Escalamiento" in resultado.secciones
+    assert "Políticas de Atención > Política de Citas" in resultado.secciones
+
+
+def test_no_cita_secciones_sin_texto() -> None:
+    """Ninguna fuente debe apuntar a un encabezado sin contenido."""
+    from walle.recuperacion.relevance import seleccionar_documentos
+
+    corpus = _corpus_con("Productos de Crédito.md")
+    seleccion = seleccionar_documentos(
+        corpus, "¿Cuál es el monto máximo del Crédito Productivo Impulso?"
+    )
+
+    resultado = seleccion.resultados[0]
+    por_titulo = {seccion.titulo: seccion for seccion in resultado.documento.secciones}
+    assert resultado.secciones
+    for titulo in resultado.secciones:
+        assert por_titulo[titulo].texto.strip()
+
+
+def test_no_cita_mas_de_tres_secciones() -> None:
+    """Las fuentes deben ser legibles: como maximo tres secciones por documento."""
+    from walle.recuperacion.relevance import seleccionar_documentos
+
+    corpus = _corpus_con("Productos de Crédito.md")
+    seleccion = seleccionar_documentos(
+        corpus, "¿Cuál es el monto máximo del Crédito Productivo Impulso?"
+    )
+
+    assert len(seleccion.resultados[0].secciones) <= 3

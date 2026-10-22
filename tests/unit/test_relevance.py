@@ -7,6 +7,7 @@ from pathlib import Path
 from walle.recuperacion.corpus import cargar_corpus
 from walle.recuperacion.relevance import (
     expandir_conceptos,
+    normalizar_plural,
     seleccionar_documentos,
     tokenizar,
 )
@@ -87,3 +88,42 @@ def test_seleccion_incluye_secciones_coincidentes() -> None:
     )
 
     assert seleccion.resultados[0].secciones
+
+
+def test_normalizar_plural_une_singular_y_plural() -> None:
+    assert normalizar_plural("reclamaciones") == normalizar_plural("reclamacion")
+    assert normalizar_plural("procedimientos") == normalizar_plural("procedimiento")
+    assert normalizar_plural("requisitos") == normalizar_plural("requisito")
+    assert normalizar_plural("clientes") == normalizar_plural("cliente")
+
+
+def test_normalizar_plural_respeta_palabras_terminadas_en_s() -> None:
+    assert normalizar_plural("pais") == "pais"
+    assert normalizar_plural("paises") == "pais"
+    assert normalizar_plural("crisis") == "crisis"
+    assert normalizar_plural("meses") == "mes"
+    assert normalizar_plural("mes") == "mes"
+
+
+def test_termino_generico_no_arrastra_todo_el_corpus() -> None:
+    seleccion = seleccionar_documentos(_corpus(), "¿Qué requisitos hay?")
+
+    assert [documento.nombre for documento in seleccion.documentos] == [
+        "Productos de Crédito.md"
+    ]
+
+
+def test_documentos_necesito_prioriza_procedimientos() -> None:
+    seleccion = seleccionar_documentos(_corpus(), "¿Qué documentos necesito?")
+
+    nombres = [documento.nombre for documento in seleccion.documentos]
+    assert nombres[0] == "Procedimientos Operativos.md"
+    assert len(nombres) < 5
+
+
+def test_sinonimo_ausente_del_corpus_sigue_recuperando() -> None:
+    seleccion = seleccionar_documentos(_corpus(), "¿Qué cubre una póliza de vida?")
+
+    assert "Portafolio de Microseguros.md" in {
+        documento.nombre for documento in seleccion.documentos
+    }

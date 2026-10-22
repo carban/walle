@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 import pytest
 
-from walle.modelo.cliente import ClienteOpenRouter, ErrorProveedor
+from walle.modelo.cliente import MAX_TOKENS_RESPUESTA, ClienteOpenRouter, ErrorProveedor
 from walle.modelo.prompt import construir_mensajes
 from walle.recuperacion.corpus import Documento
 
@@ -83,6 +83,24 @@ def test_cliente_falla_con_respuesta_malformada() -> None:
         cliente.responder([DOCUMENTO], "monto")
 
 
+def test_cliente_no_expone_el_razonamiento_si_falta_el_contenido() -> None:
+    """El razonamiento interno del modelo nunca debe llegar al asesor."""
+    transporte = httpx.MockTransport(
+        lambda _: httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {"message": {"content": None, "reasoning": "paso a paso interno"}}
+                ]
+            },
+        )
+    )
+    cliente = ClienteOpenRouter(api_key="prueba", transporte=transporte)
+
+    with pytest.raises(ErrorProveedor):
+        cliente.responder([DOCUMENTO], "monto")
+
+
 def test_cliente_envia_autorizacion_y_modelo() -> None:
     capturado: dict[str, Any] = {}
 
@@ -100,3 +118,19 @@ def test_cliente_envia_autorizacion_y_modelo() -> None:
 
     assert capturado["headers"]["authorization"] == "Bearer clave-secreta-de-prueba"
     assert capturado["cuerpo"]["model"] == "modelo/prueba"
+
+
+def test_cliente_reserva_tokens_para_el_razonamiento() -> None:
+    """El presupuesto debe cubrir la deliberacion y la respuesta final."""
+    capturado: dict[str, Any] = {}
+
+    def manejador(peticion: httpx.Request) -> httpx.Response:
+        capturado["cuerpo"] = json.loads(peticion.content)
+        return _respuesta("ok")
+
+    cliente = ClienteOpenRouter(
+        api_key="prueba", transporte=httpx.MockTransport(manejador)
+    )
+    cliente.responder([DOCUMENTO], "monto")
+
+    assert capturado["cuerpo"]["max_tokens"] >= MAX_TOKENS_RESPUESTA

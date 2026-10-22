@@ -1,9 +1,9 @@
 """Seleccion del documento relevante para una pregunta.
 
 La relevancia usa BM25 (Okapi BM25) para puntuar documentos y secciones,
-complementado con bonificaciones de entidades del dominio y moneda. El
-resultado son los documentos a enviar al modelo y las secciones que los
-sustentan, que despues se convierten en fuentes citadas.
+con normalizacion de plurales y bonificaciones de sinonimos, entidades del
+dominio y moneda. El resultado son los documentos a enviar al modelo y las
+secciones que los sustentan, que despues se convierten en fuentes citadas.
 """
 
 from __future__ import annotations
@@ -135,21 +135,43 @@ _ENTIDADES = (
 _TOKEN = re.compile(r"[a-z0-9]+")
 _MONEDA = re.compile(r"\$\s?[\d.,]+")
 
+#: Tope de secciones citadas por documento para que la fuente sea legible.
+_MAX_SECCIONES = 3
 
-def _stem_token(token: str) -> str:
-    """Stemmer muy sencillo: quita la 's' final de plurales en espanol.
+#: Una seccion se cita solo si su puntaje no baja de la mitad del mejor.
+_MARGEN_SECCIONES = 0.5
 
-    Sirve para que "procedimientos" coincida con el grupo de sinonimos que tiene
-    "procedimiento", sin tener que listar todas las formas plurales a mano.
+#: Consonantes que en espanol forman el plural con "es" (reclamacion -> reclamaciones).
+_CONSONANTES_PLURAL_ES = frozenset("lrndzjs")
+
+
+def normalizar_plural(token: str) -> str:
+    """Reduce un plural en espanol a una forma estable para el indice BM25.
+
+    BM25 compara tokens exactos: sin esta normalizacion "reclamacion" y
+    "reclamaciones" nunca coinciden y la recuperacion depende del bonus de
+    sinonimos. Las reglas son conservadoras a proposito: solo quitan
+    terminaciones plurales productivas y dejan intactas palabras que ya
+    terminan en "s" (pais, crisis, virus).
     """
-    if len(token) > 3 and token.endswith("s"):
-        return token[:-1]
-    return token
+    if len(token) <= 3 or not token.endswith("s"):
+        return token
+    if token.endswith("ces") and len(token) > 4:
+        # veces -> vez, voces -> voz, raices -> raiz
+        return token[:-3] + "z"
+    if token.endswith("es") and len(token) > 4:
+        candidato = token[:-2]
+        if candidato[-1] in _CONSONANTES_PLURAL_ES:
+            # intereses -> interes -> inter; paises -> pais.
+            return normalizar_plural(candidato)
+    if token.endswith(("is", "us")):
+        return token
+    return token[:-1]
 
 
 def _stems(tokens: list[str]) -> set[str]:
     """Devuelve los stems de una lista de tokens."""
-    return {_stem_token(t) for t in tokens}
+    return {normalizar_plural(t) for t in tokens}
 
 
 def tokenizar(texto: str) -> list[str]:
@@ -157,6 +179,11 @@ def tokenizar(texto: str) -> list[str]:
     normalizado = normalizar(texto)
     tokens = _TOKEN.findall(normalizado)
     return [token for token in tokens if token not in _PALABRAS_VACIAS and len(token) > 1]
+
+
+def tokenizar_indice(texto: str) -> list[str]:
+    """Tokeniza y normaliza plurales para indexar y consultar con BM25."""
+    return [normalizar_plural(token) for token in tokenizar(texto)]
 
 
 def expandir_conceptos(tokens: list[str]) -> set[str]:
@@ -201,54 +228,80 @@ class Seleccion:
 
 
 def _secciones_bm25(documento: Documento, terminos: list[str]) -> tuple[str, ...]:
-    """Devuelve las secciones del documento ordenadas por su puntaje BM25.
+    """Devuelve las secciones que mejor sustentan la pregunta, de mayor a menor.
 
-    Cada seccion se indexa de forma independiente con BM25 y se devuelven las
-    que tienen coincidencia (score > 0), ordenadas de mayor a menor relevancia.
-    Si ninguna seccion coincide, se devuelve la primera seccion como fallback.
+    Se indexa el titulo junto con el texto porque el encabezado es parte de la
+    evidencia ("Vida Protegida" no vuelve a decir "vida" en su contenido). Las
+    secciones vacias se descartan para no citar encabezados sin informacion.
     """
     if not documento.secciones or not terminos:
         return ()
 
-    indice = BM25Index()
-    secciones_lista = list(documento.secciones)
-    for indice_seccion, seccion in enumerate(secciones_lista):
-        seccion_tokens = tokenizar(seccion.texto)
-        indice.agregar(str(indice_seccion), seccion_tokens)
+    secciones = [
+        (indice, seccion)
+        for indice, seccion in enumerate(documento.secciones)
+        if seccion.texto.strip()
+    ]
+    if not secciones:
+        return ()
 
-    scores = indice.scores(terminos)
-    ordenados = sorted(scores.items(), key=lambda elemento: (-elemento[1], int(elemento[0])))
+    terminos_indice = [normalizar_plural(termino) for termino in terminos]
 
-    coincidentes = tuple(
-        secciones_lista[int(identificador)].titulo
-        for identificador, score in ordenados
-        if score > 0
+    indice_bm25 = BM25Index()
+    for indice, seccion in secciones:
+        # Se omite el titulo del documento ("Politicas de Atencion > ...") porque
+        # repetirlo en todas las secciones baja el IDF y diluye las coincidencias.
+        titulo_util = seccion.titulo.split(" > ", 1)[-1]
+        indice_bm25.agregar(
+            str(indice), tokenizar_indice(f"{titulo_util} {seccion.texto}")
+        )
+
+    scores = indice_bm25.scores(terminos_indice)
+    ordenados = sorted(
+        ((scores.get(str(indice), 0.0), indice) for indice, _ in secciones),
+        key=lambda elemento: (-elemento[0], elemento[1]),
     )
 
-    if not coincidentes:
-        return (documento.secciones[0].titulo,) if documento.secciones else ()
+    mejor = ordenados[0][0]
+    if mejor <= 0:
+        # Sin coincidencia en el contenido, se cita la primera seccion con texto.
+        return (secciones[0][1].titulo,)
 
-    return coincidentes
+    corte = mejor * _MARGEN_SECCIONES
+    return tuple(
+        documento.secciones[indice].titulo
+        for puntaje, indice in ordenados
+        if puntaje >= corte
+    )[:_MAX_SECCIONES]
 
 
-def _bonificacion_sinonimos(tokens: list[str], documento: Documento) -> float:
+def _bonificacion_sinonimos(
+    tokens: list[str],
+    documento: Documento,
+    pesos: dict[str, float] | None = None,
+) -> float:
     """Devuelve un impulso por coincidencia de grupos de sinonimos consulta-documento.
 
-    Si la consulta tiene al menos un token de un grupo de sinonimos y el documento
-    tiene al menos un token del mismo grupo, se suma un impulso fijo. Esto permite
-    recuperar documentos cuando el usuario usa un sinonimo del termino que aparece
-    en el documento (ej. "procedimiento" vs "procedimientos"), sin el ruido de
-    expandir todos los sinonimos en el indice BM25.
+    El peso depende de la frecuencia documental del termino de la consulta: un
+    termino presente en todos los documentos ("documentos") no distingue a
+    ninguno y suma poco; un termino ausente del corpus ("siniestro") conserva
+    todo el impulso. Asi se recuperan sinonimos sin que una palabra generica
+    arrastre el corpus completo.
     """
     contenido_tokens = _stems(tokenizar(documento.contenido))
     consulta_stems = _stems(tokens)
     bonificacion = 0.0
     for grupo in _GRUPOS_SINONIMOS:
         grupo_stems = _stems(list(grupo))
-        consulta_en_grupo = bool(consulta_stems & grupo_stems)
-        documento_en_grupo = bool(contenido_tokens & grupo_stems)
-        if consulta_en_grupo and documento_en_grupo:
+        coincidentes = consulta_stems & grupo_stems
+        if not coincidentes:
+            continue
+        if not (contenido_tokens & grupo_stems):
+            continue
+        if pesos is None:
             bonificacion += 1.0
+        else:
+            bonificacion += max(pesos.get(stem, 1.0) for stem in coincidentes)
     return bonificacion
 
 
@@ -256,17 +309,18 @@ def evaluar_documento(
     documento: Documento,
     tokens: list[str],
     puntaje_bm25: float = 0.0,
+    pesos_sinonimos: dict[str, float] | None = None,
 ) -> ResultadoRelevancia:
     """Calcula el puntaje de relevancia de un documento y las secciones que coinciden.
 
     El puntaje combina el score BM25 del documento con bonificaciones por
-    entidades del dominio y por moneda. Las secciones se eligen mediante un
-    indice BM25 interno sobre las secciones del mismo documento.
+    sinonimos, entidades del dominio y moneda. Las secciones se eligen mediante
+    un indice BM25 interno sobre el titulo y el texto de cada seccion.
     """
     puntaje = puntaje_bm25
 
     # Coincidencia de sinonimos del dominio entre consulta y documento.
-    puntaje += _bonificacion_sinonimos(tokens, documento)
+    puntaje += _bonificacion_sinonimos(tokens, documento, pesos_sinonimos)
 
     # Las entidades del dominio (nombres de producto) son muy discriminantes.
     pregunta_normalizada = normalizar(" ".join(tokens))
@@ -284,6 +338,23 @@ def evaluar_documento(
     secciones = _secciones_bm25(documento, tokens)
 
     return ResultadoRelevancia(documento=documento, puntaje=puntaje, secciones=secciones)
+
+
+def _pesos_por_frecuencia(
+    tokens_indice: list[str],
+    documentos_tokens: dict[str, list[str]],
+) -> dict[str, float]:
+    """Pondera cada termino de la consulta por su frecuencia documental.
+
+    Un termino que aparece en todos los documentos no ayuda a discriminarlos:
+    su peso baja y no puede, por si solo, superar el umbral. Un termino ausente
+    del corpus (un sinonimo que el usuario uso) conserva el peso completo.
+    """
+    conjuntos = [set(tokens) for tokens in documentos_tokens.values()]
+    return {
+        token: 1.0 / (1.0 + sum(1 for conjunto in conjuntos if token in conjunto))
+        for token in set(tokens_indice)
+    }
 
 
 def seleccionar_documentos(
@@ -305,19 +376,30 @@ def seleccionar_documentos(
     if not tokens:
         return Seleccion()
 
+    tokens_indice = [normalizar_plural(token) for token in tokens]
+
     # Indice BM25 a nivel documento: cada documento es una entrada.
+    documentos_tokens = {
+        documento.nombre: tokenizar_indice(documento.contenido)
+        for documento in corpus.documentos
+    }
     indice_documentos = BM25Index()
     for documento in corpus.documentos:
-        doc_tokens = tokenizar(documento.contenido)
-        indice_documentos.agregar(documento.nombre, doc_tokens)
+        indice_documentos.agregar(
+            documento.nombre, documentos_tokens[documento.nombre]
+        )
 
-    scores_documentos = indice_documentos.scores(tokens)
+    scores_documentos = indice_documentos.scores(tokens_indice)
+    pesos_sinonimos = _pesos_por_frecuencia(tokens_indice, documentos_tokens)
 
     resultados: list[ResultadoRelevancia] = []
     for documento in corpus.documentos:
         puntaje_bm25 = scores_documentos.get(documento.nombre, 0.0)
         resultado = evaluar_documento(
-            documento, tokens, puntaje_bm25=puntaje_bm25
+            documento,
+            tokens,
+            puntaje_bm25=puntaje_bm25,
+            pesos_sinonimos=pesos_sinonimos,
         )
         resultados.append(resultado)
 

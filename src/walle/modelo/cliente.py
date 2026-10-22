@@ -19,6 +19,11 @@ from walle.recuperacion.corpus import Documento
 
 URL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 
+#: Tokens para razonamiento + respuesta final. Los modelos de razonamiento gastan
+#: parte del presupuesto en deliberar; con 700 se quedan sin espacio y devuelven
+#: solo razonamiento, lo que degrada la respuesta al fallback extractivo.
+MAX_TOKENS_RESPUESTA = 1200
+
 
 class ErrorProveedor(RuntimeError):
     """Fallo del proveedor de modelo (red, limite de cuota o respuesta invalida)."""
@@ -62,7 +67,7 @@ class ClienteOpenRouter:
             "model": self._modelo,
             "messages": mensajes,
             "temperature": 0.1,
-            "max_tokens": 700,
+            "max_tokens": MAX_TOKENS_RESPUESTA,
         }
         encabezados = {
             "Authorization": f"Bearer {self._api_key}",
@@ -104,10 +109,12 @@ class ClienteOpenRouter:
         try:
             datos = respuesta.json()
             mensaje = datos["choices"][0]["message"]
-            contenido = mensaje.get("content") or mensaje.get("reasoning", "")
+            contenido = mensaje.get("content")
         except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
             raise ErrorProveedor("respuesta con formato inesperado") from error
 
+        # El campo "reasoning" es deliberacion interna del modelo: si no hay
+        # contenido final, la respuesta no es apta para el asesor.
         if not isinstance(contenido, str) or not contenido.strip():
-            raise ErrorProveedor("respuesta vacia del proveedor")
+            raise ErrorProveedor("respuesta sin contenido final")
         return contenido.strip()
