@@ -173,7 +173,7 @@ describe('Panel lateral con el historial', () => {
     await usuario.click(screen.getByRole('button', { name: /nueva conversación/i }))
 
     expect(screen.queryByText('El monto máximo es $50.000.000.')).not.toBeInTheDocument()
-    expect(screen.getByText('¿En qué puedo ayudarte?')).toBeInTheDocument()
+    expect(screen.getByText(/¿En qué puedo ayudarte\?/)).toBeInTheDocument()
     expect(within(panel).getAllByRole('listitem')).toHaveLength(3)
   })
 

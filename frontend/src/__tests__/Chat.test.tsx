@@ -210,6 +210,47 @@ describe('Chat', () => {
     expect(screen.getByText(/Segunda línea\./)).toBeInTheDocument()
   })
 
+  it('muestra en negrita el texto rodeado por ** (RF-02)', async () => {
+    vi.mocked(consultar).mockResolvedValue({
+      respuesta: 'El monto máximo es **$50.000.000** y aplica a todos.',
+      fuentes: [],
+      estado: 'Exitosa',
+      consulta_id: 5,
+      duracion_ms: 100,
+      modelo: '',
+    })
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    await usuario.type(campo(), 'monto máximo')
+    await usuario.click(screen.getByRole('button', { name: /^enviar$/i }))
+
+    const negrita = await screen.findByText('$50.000.000')
+    expect(negrita.tagName).toBe('STRONG')
+    expect(screen.getByText(/El monto máximo es/).textContent).not.toContain('**')
+  })
+
+  it('no interpreta los ** sin cierre ni los convierte en HTML (RF-02, R-04)', async () => {
+    vi.mocked(consultar).mockResolvedValue({
+      respuesta: '**<img src=x onerror=alert(1)>** y un **suelto',
+      fuentes: [],
+      estado: 'Exitosa',
+      consulta_id: 6,
+      duracion_ms: 100,
+      modelo: '',
+    })
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    await usuario.type(campo(), 'prueba')
+    await usuario.click(screen.getByRole('button', { name: /^enviar$/i }))
+
+    const negrita = await screen.findByText('<img src=x onerror=alert(1)>')
+    expect(negrita.tagName).toBe('STRONG')
+    expect(document.querySelector('img')).toBeNull()
+    expect(screen.getByText(/y un \*\*suelto/).textContent).toContain('**suelto')
+  })
+
   it('muestra el error de validación del servidor sin trazas (RF-05)', async () => {
     vi.mocked(consultar).mockRejectedValue(
       new ErrorValidacion('El campo "pregunta" String should have at least 3 characters.'),
