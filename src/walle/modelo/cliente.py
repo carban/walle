@@ -38,7 +38,7 @@ class ClienteOpenRouter:
     def __init__(
         self,
         api_key: str,
-        modelo: str = "minimax/minimax-m3.1-flash:free",
+        modelo: str = "cohere/north-mini-code:free",
         timeout: float = 30.0,
         reintentos: int = 1,
         transporte: httpx.BaseTransport | None = None,
@@ -103,7 +103,8 @@ class ClienteOpenRouter:
 
         try:
             datos = respuesta.json()
-            contenido = datos["choices"][0]["message"]["content"]
+            mensaje = datos["choices"][0]["message"]
+            contenido = mensaje.get("content") or mensaje.get("reasoning", "")
         except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
             raise ErrorProveedor("respuesta con formato inesperado") from error
 

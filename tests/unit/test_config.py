@@ -15,9 +15,21 @@ DATA = RAIZ / "Data"
 def test_valores_por_defecto() -> None:
     configuracion = Settings(_env_file=None, openrouter_api_key=None)
 
-    assert configuracion.walle_modelo == "minimax/minimax-m3.1-flash:free"
+    assert configuracion.walle_modelo == "cohere/north-mini-code:free"
     assert configuracion.walle_umbral_relevancia == 1.0
     assert configuracion.hay_credencial_proveedor is False
+
+
+def test_credencial_api_key2_es_valida() -> None:
+    """OPENROUTER_API_KEY2 es reconocida como credencial valida del proveedor."""
+    configuracion = Settings(
+        _env_file=None,
+        openrouter_api_key=None,
+        openrouter_api_key2="sk-or-v1-prueba123",
+    )
+
+    assert configuracion.hay_credencial_proveedor is True
+    assert configuracion.openrouter_api_key2 == "sk-or-v1-prueba123"
 
 
 def test_origenes_permitidos_por_defecto() -> None:

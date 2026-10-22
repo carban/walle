@@ -45,7 +45,7 @@ La **trazabilidad es obligatoria**: todo código nuevo debe poder rastrearse has
 
 ### 4.2 IA y modelo
 
-- El modelo por defecto es `minimax/minimax-m3.1-flash:free` (gratuito). **No** introduzcas modelos de pago ni un failover automático a ellos.
+- El modelo por defecto es `cohere/north-mini-code:free` (gratuito). **No** introduzcas modelos de pago ni un failover automático a ellos.
 - Si el proveedor falla, se degrada a la respuesta extractiva determinista local (`src/walle/fallback/extractivo.py`), nunca a un servicio inexistente.
 - **No hay chunking**: los documentos son pequeños; se envía el documento completo al modelo.
 - La IA redacta; el sistema decide. Los estados válidos, los documentos permitidos y los criterios de suficiencia están en código, no en el prompt.

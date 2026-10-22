@@ -39,8 +39,9 @@ class Settings(BaseSettings):
     )
 
     openrouter_api_key: str | None = Field(default=None, alias="OPENROUTER_API_KEY")
+    openrouter_api_key2: str | None = Field(default=None, alias="OPENROUTER_API_KEY2")
 
-    walle_modelo: str = "minimax/minimax-m3.1-flash:free"
+    walle_modelo: str = "cohere/north-mini-code:free"
     walle_timeout_segundos: float = 30.0
     walle_reintentos: int = 1
     walle_umbral_relevancia: float = 1.0
@@ -58,8 +59,8 @@ class Settings(BaseSettings):
 
     @property
     def hay_credencial_proveedor(self) -> bool:
-        """Indica si hay clave de OpenRouter disponible."""
-        return bool(self.openrouter_api_key)
+        """Indica si hay clave de OpenRouter disponible (usa API_KEY2 por defecto)."""
+        return bool(self.openrouter_api_key2 or self.openrouter_api_key)
 
 
 @lru_cache(maxsize=1)

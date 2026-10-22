@@ -67,9 +67,9 @@ def construir_orquestador(
     )
 
     cliente = cliente_modelo
-    if cliente is None and settings.hay_credencial_proveedor and settings.openrouter_api_key:
+    if cliente is None and settings.hay_credencial_proveedor and settings.openrouter_api_key2:
         cliente = ClienteOpenRouter(
-            api_key=settings.openrouter_api_key,
+            api_key=settings.openrouter_api_key2,
             modelo=settings.walle_modelo,
             timeout=settings.walle_timeout_segundos,
             reintentos=settings.walle_reintentos,
