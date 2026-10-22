@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // Si el puerto esta ocupado, Vite falla en vez de cambiar de puerto en
+    // silencio: cambiarlo dejaba al navegador viendo otra aplicacion.
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
