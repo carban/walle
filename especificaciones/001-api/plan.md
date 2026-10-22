@@ -68,8 +68,8 @@ Los seis documentos del corpus son pequeños (decenas de líneas). Trocearlos no
 
 1. Carga cada documento permitido completo en memoria, una vez al arrancar, con su hash de contenido para detectar duplicados.
 2. Ante cada pregunta calcula un puntaje de relevancia léxico (tokenización con normalización de acentos y minúsculas + tabla de sinónimos del dominio + solapamiento de phrasesbigramas).
-3. Selecciona el documento de mayor puntaje; si hay empate dentro de un margen, incluye el segundo (para consultas transversales, p. ej. "reclamación de un seguro" que toca el portafolio y los procedimientos).
-4. Envía el **documento completo** al modelo.
+3. Selecciona el **documento más relevante**; además incluye los documentos que alcanzan un **30 % del mejor puntaje**, de modo que una pregunta que cruza dos dominios (un seguro y un crédito) llegue al modelo con ambos documentos.
+4. Envía el **documento completo** (o los documentos seleccionados) al modelo.
 
 ## 2. Componentes
 

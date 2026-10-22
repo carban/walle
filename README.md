@@ -196,7 +196,7 @@ npm run build
 uv run pytest -m integration
 ```
 
-**Estado actual**: 117 pruebas de backend (incluidas 4 de CORS y las de contrato) y 11 de frontend, en
+**Estado actual**: 120 pruebas de backend (incluidas 4 de CORS y las de contrato) y 11 de frontend, en
 verde; `ruff`, `mypy --strict`, `oxlint` y `tsc` sin observaciones.
 
 ### Cobertura de los casos exigidos
@@ -269,7 +269,7 @@ Resumen:
 
 - **La IA redactó el código y la documentación**; la arquitectura, los requisitos, los criterios de
   aceptación y las decisiones de seguridad se definieron antes y se validaron con pruebas.
-- **TDD estricto**: 128 pruebas (117 de backend, 11 de frontend) que fallan primero cuando el
+- **TDD estricto**: 131 pruebas (120 de backend, 11 de frontend) que fallan primero cuando el
   comportamiento no está implementado.
 - **Verificación local**: `pytest`, `ruff`, `mypy --strict`, `vitest`, `oxlint` y `tsc` en verde antes
   de cada commit.

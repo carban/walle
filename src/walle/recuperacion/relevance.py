@@ -238,12 +238,14 @@ def seleccionar_documentos(
     corpus: Corpus,
     pregunta: str,
     umbral: float = 1.0,
-    margen: float = 0.5,
+    margen_relativo: float = 0.3,
 ) -> Seleccion:
     """Selecciona los documentos relevantes para la pregunta.
 
-    Se queda con los documentos que superan el umbral y, entre ellos, con los que
-    estan dentro del margen del mejor resultado (para consultas transversales).
+    Se queda con los documentos que superan el umbral minimo y, entre ellos, con los
+    que alcanzan un porcentaje del mejor resultado. Ese margen relativo permite que
+    una pregunta que cruza dos dominios (por ejemplo, un seguro y un credito)
+    llegue al modelo con ambos documentos y no solo con el mas relevante.
     """
     tokens = tokenizar(pregunta)
     if not tokens:
@@ -258,8 +260,9 @@ def seleccionar_documentos(
         return Seleccion()
 
     mejor = max(resultado.puntaje for resultado in relevantes)
+    corte = max(umbral, mejor * margen_relativo)
     seleccionados = tuple(
-        resultado for resultado in relevantes if resultado.puntaje >= mejor - margen
+        resultado for resultado in relevantes if resultado.puntaje >= corte
     )
     seleccionados = tuple(sorted(seleccionados, key=lambda resultado: -resultado.puntaje))
     return Seleccion(resultados=seleccionados, puntaje_maximo=mejor)

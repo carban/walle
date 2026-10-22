@@ -67,7 +67,7 @@
 1. ** specifications primero**: ninguna implementación se escribió sin requisito, criterio de
    aceptación y tarea asociados (trazabilidad en la matriz §8 de cada especificación).
 2. **TDD**: cada comportamiento se fijó primero con una prueba que fallaba; las suites quedaron en
-   verde con `pytest` (117 pruebas) y `vitest` (11 pruebas).
+   verde con `pytest` (120 pruebas) y `vitest` (11 pruebas).
 3. **Puertas automáticas**: `ruff`, `mypy --strict`, `oxlint` y `tsc --noEmit` sin observaciones.
 4. **Pruebas de contrato reales**: `uv run pytest -m integration` consulta OpenRouter de verdad y
    comprueba que la respuesta menciona la cifra correcta y trae su fuente.
