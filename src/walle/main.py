@@ -19,6 +19,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from walle import __version__
+from walle.api.historial import router as router_historial
 from walle.api.rutas import router
 from walle.config import (
     DOCUMENTOS_EXCLUIDOS,
@@ -28,7 +29,10 @@ from walle.config import (
 )
 from walle.dominio.consulta import Orquestador
 from walle.modelo.cliente import ClienteOpenRouter
-from walle.persistencia.repositorio import RepositorioConsultas, RepositorioEnMemoria
+from walle.persistencia.repositorio import (
+    RepositorioConsultas,
+    crear_repositorio,
+)
 from walle.recuperacion.corpus import cargar_corpus
 from walle.seguridad.trazas import (
     configurar_logging,
@@ -92,8 +96,9 @@ def crear_aplicacion(
 
     @asynccontextmanager
     async def ciclo_vida(app: FastAPI) -> AsyncIterator[None]:
-        repositorio = RepositorioEnMemoria()
+        repositorio, disponible = crear_repositorio(configuracion.walle_db_path)
         app.state.repositorio = repositorio
+        app.state.persistencia_disponible = disponible
         app.state.orquestador = construir_orquestador(configuracion, repositorio, cliente_modelo)
         yield
 
@@ -146,6 +151,7 @@ def crear_aplicacion(
         )
 
     app.include_router(router)
+    app.include_router(router_historial)
 
     _montar_frontend(app)
     return app

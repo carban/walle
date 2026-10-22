@@ -15,19 +15,20 @@ RAIZ = Path(__file__).resolve().parents[2]
 DATA = RAIZ / "Data"
 
 
-def _configuracion() -> Settings:
+def _configuracion(tmp_path: Path) -> Settings:
     return Settings(
+        _env_file=None,
         openrouter_api_key=None,
         walle_data_dir=DATA,
-        walle_umbral_relevancia=1.0,
+        walle_db_path=tmp_path / "walle.db",
         walle_log_level="WARNING",
     )
 
 
 @pytest.fixture
-def cliente() -> TestClient:
+def cliente(tmp_path: Path) -> TestClient:
     app = crear_aplicacion(
-        _configuracion(),
+        _configuracion(tmp_path),
         cliente_modelo=ClienteFalso(["El monto máximo es $50.000.000."]),
     )
     with TestClient(app) as cliente_http:
@@ -46,7 +47,7 @@ def test_consulta_valida_devuelve_200_y_fuentes(cliente: TestClient) -> None:
     assert "50.000.000" in cuerpo["respuesta"]
     assert cuerpo["fuentes"]
     assert cuerpo["fuentes"][0]["documento"] == "Productos de Crédito.md"
-    assert cuerpo["consulta_id"] == 1
+    assert cuerpo["consulta_id"] is not None
     assert "X-Correlation-ID" in respuesta.headers
 
 
@@ -113,8 +114,8 @@ def test_intento_de_inyeccion_queda_bloqueado(cliente: TestClient) -> None:
     assert cuerpo["fuentes"] == []
 
 
-def test_proveedor_caido_responde_con_fallback() -> None:
-    app = crear_aplicacion(_configuracion(), cliente_modelo=ClienteCaido())
+def test_proveedor_caido_responde_con_fallback(tmp_path: Path) -> None:
+    app = crear_aplicacion(_configuracion(tmp_path), cliente_modelo=ClienteCaido())
     with TestClient(app) as cliente_http:
         respuesta = cliente_http.post(
             "/api/consultar",

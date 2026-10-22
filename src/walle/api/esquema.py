@@ -58,6 +58,34 @@ class DocumentoInfo(BaseModel):
     secciones: int
 
 
+class ConsultaHistorial(BaseModel):
+    """Consulta registrada, tal como se expone en el historial."""
+
+    id: int = Field(..., description="Indice de la consulta.")
+    pregunta: str
+    fecha_hora: str = Field(..., description="Momento de la consulta en ISO-8601 UTC.")
+    respuesta: str
+    fuentes: list[Fuente] = Field(default_factory=list)
+    estado: Estado
+    duracion_ms: int = 0
+    modelo: str = ""
+
+
+class BorradoRespuesta(BaseModel):
+    """Resultado de eliminar una consulta del historial."""
+
+    eliminado: bool
+    indice: int
+
+
+class PersistenciaInfo(BaseModel):
+    """Estado de la persistencia."""
+
+    disponible: bool
+    motor: str
+    ruta: str
+
+
 class CorpusInfo(BaseModel):
     """Estado del corpus documental."""
 
@@ -81,4 +109,5 @@ class SaludResponse(BaseModel):
     version: str
     corpus: CorpusInfo
     proveedor: ProveedorInfo
+    persistencia: PersistenciaInfo
     correlacion: str

@@ -82,7 +82,7 @@
   - Criterio: `tests/unit/test_repositorio.py` — guarda y recupera por identificador.
 - [x] **T-025** Conectar el orquestador con el repositorio: registrar siempre la consulta (pregunta, fecha/hora, respuesta, fuentes, estado, duración, modelo), también en los estados de insuficiencia y bloqueo, sin datos sensibles.
   - Criterio: `tests/integration/test_api_consulta.py::test_consulta_se_persiste`.
-- [ ] **T-026** Implementar `RepositorioSQLite` (característica 002) detrás del mismo protocolo y conectarlo por configuración.
+- [x] **T-026** Implementar `RepositorioSQLite` (característica 002) detrás del mismo protocolo y conectarlo por configuración.
   - Criterio: la suite sigue verde; se anota como dependencia de `002-persistencia`.
 
 ## Fase 7 — Pruebas de aceptación del enunciado

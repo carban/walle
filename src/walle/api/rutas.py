@@ -12,11 +12,13 @@ from walle.api.esquema import (
     ConsultaResponse,
     CorpusInfo,
     DocumentoInfo,
+    PersistenciaInfo,
     ProveedorInfo,
     SaludResponse,
 )
 from walle.dominio.consulta import Orquestador
 from walle.dominio.estados import Estado
+from walle.persistencia.repositorio import RepositorioSQLite
 from walle.seguridad.trazas import obtener_correlacion
 
 router = APIRouter(prefix="/api", tags=["walle"])
@@ -65,12 +67,13 @@ async def documentos(orquestador: DependenciaOrquestador) -> list[DocumentoInfo]
 
 
 @router.get("/salud", response_model=SaludResponse, summary="Estado de la aplicacion")
-async def salud(orquestador: DependenciaOrquestador) -> SaludResponse:
-    """Informa el estado del corpus y del proveedor de modelo."""
+async def salud(request: Request, orquestador: DependenciaOrquestador) -> SaludResponse:
+    """Informa el estado del corpus, del proveedor de modelo y de la persistencia."""
     from walle import __version__
 
     corpus = orquestador.corpus
     secciones = sum(len(documento.secciones) for documento in corpus.documentos)
+    repositorio = request.app.state.repositorio
     return SaludResponse(
         estado="ok",
         version=__version__,
@@ -83,6 +86,11 @@ async def salud(orquestador: DependenciaOrquestador) -> SaludResponse:
         proveedor=ProveedorInfo(
             modelo=orquestador.modelo,
             disponible=orquestador.proveedor_disponible,
+        ),
+        persistencia=PersistenciaInfo(
+            disponible=bool(request.app.state.persistencia_disponible),
+            motor="sqlite" if isinstance(repositorio, RepositorioSQLite) else "memoria",
+            ruta=str(getattr(repositorio, "ruta", "")),
         ),
         correlacion=obtener_correlacion() or "-",
     )
