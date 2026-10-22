@@ -43,14 +43,18 @@ Persistir de forma confiable y trazable cada consulta procesada por el asistente
 ### RF-01 — Registro de cada consulta
 Al responder una consulta, el sistema registra en la base una fila con: `id` (índice entero autoincremental), `pregunta` (texto recibido), `fecha_hora` (momento de la consulta en ISO-8601 UTC), `respuesta` (texto devuelto al usuario), `fuentes` (lista de documentos y fragmentos citados, serializada como JSON), `estado` (uno de los tres estados válidos), `duracion_ms` (tiempo total de la consulta) y `modelo` (modelo usado, o vacío si no se invocó al proveedor). El registro ocurre también cuando el estado es `Sin información suficiente` o `Bloqueada por seguridad`. La escritura es una transacción única: o se guarda la fila completa, o no se guarda nada.
 
+El recurso se expone como **`/api/consultas`** (nombre canónico del recurso) y como **`/api/historial`** (alias de compatibilidad, oculto de la documentación de OpenAPI). Ambos ejecutan el mismo manejador y devuelven el mismo resultado.
+
 ### RF-02 — Listado del historial
-`GET /api/historial` devuelve **todas** las consultas registradas, ordenadas de la más reciente a la más antigua, en un arreglo JSON. Cada elemento expone el índice, la pregunta, la fecha y hora, el estado y la duración; el contenido completo de la respuesta y las fuentes se incluyen en el listado para que el panel lateral pueda mostrar la conversación sin una segunda llamada. Si no hay consultas, devuelve un arreglo vacío y código 200.
+`GET /api/consultas` devuelve las consultas registradas, ordenadas de la más reciente a la más antigua, en un arreglo JSON. Cada elemento expone el índice, la pregunta, la fecha y hora, el estado y la duración; el contenido completo de la respuesta y las fuentes se incluyen en el listado para que el panel lateral pueda mostrar la conversación sin una segunda llamada. Si no hay consultas, devuelve un arreglo vacío y código 200.
+
+El listado admite paginación: `limite` (de 1 a 200, por defecto 50) y `desplazamiento` (por defecto 0). La paginación acota la carga del panel lateral sin cambiar el orden ni el contenido de cada elemento.
 
 ### RF-03 — Consulta por índice
-`GET /api/historial/{id}` devuelve la consulta indicada con todos sus campos, incluidas las fuentes estructuradas (documento y fragmento). Si el índice no existe, devuelve `404` con un mensaje que indica que la consulta no fue encontrada, sin filtrar información interna.
+`GET /api/consultas/{id}` devuelve la consulta indicada con todos sus campos, incluidas las fuentes estructuradas (documento y fragmento). Si el índice no existe, devuelve `404` con un mensaje que indica que la consulta no fue encontrada, sin filtrar información interna.
 
 ### RF-04 — Borrado por índice
-`DELETE /api/historial/{id}` elimina la consulta indicada y devuelve el resultado de la operación. Si el índice no existe, devuelve `404` con el mismo mensaje del caso anterior. La operación no afecta a las demás consultas.
+`DELETE /api/consultas/{id}` elimina la consulta indicada y devuelve el resultado de la operación. Si el índice no existe, devuelve `404` con el mismo mensaje del caso anterior. La operación no afecta a las demás consultas.
 
 ### RF-05 — Confidencialidad de lo persistido
 La base no contiene nunca información clasificada: en una consulta con estado `Bloqueada por seguridad` se persiste el **mensaje genérico** de rechazo, nunca el contenido que intentó extraerse ni el fragmento restringido que la originó; en una consulta `Exitosa` se persiste únicamente lo ya validado por los guardrails de salida. Las fuentes persistidas provienen siempre de la allowlist de documentos permitidos.
@@ -174,9 +178,9 @@ Característica: Persistencia e historial de consultas del asistente Walle
 | Requisito | Escenario Gherkin | Prueba prevista |
 |-----------|------------------|-----------------|
 | RF-01 | Registro exitoso, sin información suficiente, bloqueada | `tests/unit/test_repositorio.py` |
-| RF-02 | Listado de todas las consultas, historial vacío | `tests/integration/test_api_historial.py` |
-| RF-03 | Consulta por índice, índice inexistente | `tests/integration/test_api_historial.py` |
-| RF-04 | Borrado por índice, índice inexistente | `tests/integration/test_api_historial.py` |
+| RF-02 | Listado de todas las consultas, historial vacío, paginación | `tests/integration/test_api_historial.py`, `tests/integration/test_api_consultas.py` |
+| RF-03 | Consulta por índice, índice inexistente | `tests/integration/test_api_historial.py`, `tests/integration/test_api_consultas.py` |
+| RF-04 | Borrado por índice, índice inexistente | `tests/integration/test_api_historial.py`, `tests/integration/test_api_consultas.py` |
 | RF-05 | Registro bloqueada, base no disponible | `tests/unit/test_repositorio.py`, `tests/integration/test_api_salud.py` |
 | RNF-01 | Rendimiento de escritura y lectura | `tests/unit/test_rendimiento_persistencia.py` (no bloqueante) |
 | RNF-02 | Reinicio de la aplicación | `tests/unit/test_repositorio.py` |
