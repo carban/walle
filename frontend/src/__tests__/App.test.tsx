@@ -22,6 +22,17 @@ const respuestaExitosa: ConsultaResponse = {
   modelo: 'minimax/minimax-m3.1-flash:free',
 }
 
+const consultaPrevia: ConsultaHistorial = {
+  id: 1,
+  pregunta: '¿Cuál es el monto máximo del Crédito Productivo Impulso?',
+  fecha_hora: '2026-10-21T10:00:00+00:00',
+  respuesta: 'El monto máximo es $50.000.000.',
+  fuentes: [{ documento: 'Productos de Crédito.md', fragmento: 'Condiciones' }],
+  estado: 'Exitosa',
+  duracion_ms: 900,
+  modelo: 'minimax/minimax-m3.1-flash:free',
+}
+
 const historial: ConsultaHistorial[] = [
   {
     id: 1,
@@ -40,7 +51,7 @@ describe('Interfaz de consultas', () => {
     vi.clearAllMocks()
     vi.mocked(obtenerHistorial).mockResolvedValue([])
     vi.mocked(consultar).mockResolvedValue(respuestaExitosa)
-    vi.mocked(obtenerConsulta).mockResolvedValue(historial[0])
+    vi.mocked(obtenerConsulta).mockResolvedValue(consultaPrevia)
     vi.mocked(borrarConsulta).mockResolvedValue(undefined)
   })
 
@@ -151,7 +162,7 @@ describe('Interfaz de consultas', () => {
     vi.mocked(obtenerHistorial).mockResolvedValue(historial)
     render(<App />)
 
-    expect(await screen.findByText(historial[0].pregunta)).toBeInTheDocument()
+    expect(await screen.findByText(consultaPrevia.pregunta)).toBeInTheDocument()
   })
 
   it('carga en el chat la consulta seleccionada del historial', async () => {
@@ -159,7 +170,7 @@ describe('Interfaz de consultas', () => {
     const usuario = userEvent.setup()
     render(<App />)
 
-    await usuario.click(await screen.findByText(historial[0].pregunta))
+    await usuario.click(await screen.findByText(consultaPrevia.pregunta))
 
     await waitFor(() => {
       expect(obtenerConsulta).toHaveBeenCalledWith(1)
@@ -189,7 +200,7 @@ describe('Interfaz de consultas', () => {
     await usuario.click(screen.getByRole('button', { name: /cancelar el borrado/i }))
 
     expect(borrarConsulta).not.toHaveBeenCalled()
-    expect(screen.getByText(historial[0].pregunta)).toBeInTheDocument()
+    expect(screen.getByText(consultaPrevia.pregunta)).toBeInTheDocument()
   })
 
   it('cargar dos veces la misma entrada del historial no rompe el chat', async () => {
@@ -197,7 +208,7 @@ describe('Interfaz de consultas', () => {
     const usuario = userEvent.setup()
     render(<App />)
 
-    const entrada = await screen.findByText(historial[0].pregunta)
+    const entrada = await screen.findByText(consultaPrevia.pregunta)
     await usuario.click(entrada)
     await usuario.click(entrada)
 
@@ -213,7 +224,7 @@ describe('Interfaz de consultas', () => {
     const usuario = userEvent.setup()
     render(<App />)
 
-    await usuario.click(await screen.findByText(historial[0].pregunta))
+    await usuario.click(await screen.findByText(consultaPrevia.pregunta))
     await waitFor(() => {
       expect(screen.getByText('El monto máximo es $50.000.000.')).toBeInTheDocument()
     })
@@ -221,6 +232,6 @@ describe('Interfaz de consultas', () => {
     await usuario.click(screen.getByRole('button', { name: /nueva conversación/i }))
 
     expect(screen.queryByText('El monto máximo es $50.000.000.')).not.toBeInTheDocument()
-    expect(screen.getByText(historial[0].pregunta)).toBeInTheDocument()
+    expect(screen.getByText(consultaPrevia.pregunta)).toBeInTheDocument()
   })
 })

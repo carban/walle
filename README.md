@@ -130,6 +130,7 @@ Del lado del frontend (`frontend/.env`, variables `VITE_*`):
 | Variable | Por defecto | Descripción |
 |----------|-------------|-------------|
 | `VITE_API_URL` | vacío | Vacío ⇒ rutas relativas y **proxy de Vite** (sin peticiones entre orígenes). Con valor ⇒ el navegador llama directo a la API (el origen debe estar en `WALLE_CORS_ORIGINS`) |
+| `VITE_API_URL_FALLBACK` | `http://127.0.0.1:8000` | URL a la que se reintenta si la petición relativa no llega a la API (build servido como estático) |
 
 ```bash
 cp .env.example .env   # y completar OPENROUTER_API_KEY
@@ -170,6 +171,11 @@ La interfaz queda en <http://localhost:5173>. **No hay errores de CORS** porque 
 relativas y el proxy de Vite (`/api` → `127.0.0.1:8000`) reenvía las peticiones: el navegador nunca
 sale de su propio origen. Además la API mantiene una allowlist explícita de orígenes
 (`localhost:5173` y `127.0.0.1:5173`, que el navegador trata como distintos) como red de seguridad.
+
+Para revisar el build de producción, `npm run build && npm run preview` levanta el frontend en el
+puerto 4173 **con el mismo proxy** (sin él, `/api` devolvería el `index.html` y el chat se vería
+roto). Si el frontend se sirve desde otro servidor sin proxy, el cliente reintenta contra
+`VITE_API_URL_FALLBACK`.
 
 ### 6.3 Modo de un solo servicio (opt-in)
 
