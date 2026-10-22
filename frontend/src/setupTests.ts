@@ -11,7 +11,7 @@ function instalarMatchMedia() {
     writable: true,
     configurable: true,
     value: (consulta: string) => ({
-      matches: window.innerWidth <= 900,
+      matches: !consulta.includes('prefers-reduced-motion') && window.innerWidth <= 900,
       media: consulta,
       onchange: null,
       addEventListener: () => {},
@@ -23,8 +23,10 @@ function instalarMatchMedia() {
   })
 }
 
-instalarMatchMedia()
+// jsdom no implementa scrollIntoView: sin este doble el desplazamiento no existe.
+Element.prototype.scrollIntoView = () => {}
 
+instalarMatchMedia()
 afterEach(() => {
   vi.restoreAllMocks()
 })

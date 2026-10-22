@@ -17,6 +17,30 @@ interface Props {
 export function Chat({ intercambios, enCurso, onEnviar }: Props) {
   const [pregunta, setPregunta] = useState('')
   const campoRef = useRef<HTMLTextAreaElement>(null)
+  const contenedorRef = useRef<HTMLDivElement>(null)
+  const ultimaRef = useRef<IntercambioTipo | undefined>(undefined)
+  const conteoAnteriorRef = useRef(0)
+
+  useEffect(() => {
+    const conteo = intercambios.length
+    const ultima = intercambios.at(-1)
+    const huboBorrado = conteo < conteoAnteriorRef.current
+
+    ultimaRef.current = ultima
+    conteoAnteriorRef.current = conteo
+
+    // Sin intercambios no hay nada que desplazar; tras un borrado la vista se
+    // respeta: no es una interacción nueva del usuario la que lo provoca.
+    if (conteo === 0 || huboBorrado) return
+
+    const destino = contenedorRef.current?.lastElementChild
+    if (!(destino instanceof HTMLElement)) return
+
+    const comportamiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth'
+    destino.scrollIntoView({ block: 'nearest', behavior: comportamiento })
+  }, [intercambios])
 
   useEffect(() => {
     // Al terminar la consulta el foco vuelve al campo para seguir escribiendo.
@@ -41,10 +65,10 @@ export function Chat({ intercambios, enCurso, onEnviar }: Props) {
 
   return (
     <section className="chat" aria-label="Conversación">
-      <div className="chat__mensajes" aria-live="polite">
+      <div className="chat__mensajes" aria-live="polite" ref={contenedorRef}>
         {intercambios.length === 0 && !enCurso ? (
           <div className="chat__vacio">
-            <h2>¿En qué puedo ayudarte?</h2>
+            <h2>¡Hola soy Walle! ¿En qué puedo ayudarte?</h2>
             <p>
               Consulta sobre productos de crédito, microseguros, procedimientos operativos y
               políticas internas. Las respuestas siempre citan su fuente.

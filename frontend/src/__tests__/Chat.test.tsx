@@ -272,4 +272,92 @@ describe('Chat', () => {
 
     await waitFor(() => expect(obtenerHistorial).toHaveBeenCalledTimes(2))
   })
+
+  it('desplaza la vista al intercambio en curso cuando el usuario envía (RF-01, RF-02)', async () => {
+    let resolver: ((valor: ConsultaResponse) => void) | undefined
+    vi.mocked(consultar).mockImplementation(
+      () =>
+        new Promise<ConsultaResponse>((resolve) => {
+          resolver = resolve
+        }),
+    )
+    const espiarScroll = vi
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => {})
+
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    await usuario.type(campo(), 'monto máximo')
+    await usuario.click(screen.getByRole('button', { name: /^enviar$/i }))
+
+    await screen.findByLabelText('Consultando')
+    await waitFor(() => expect(espiarScroll).toHaveBeenCalledTimes(1))
+    expect(espiarScroll).toHaveBeenLastCalledWith({ block: 'nearest', behavior: 'smooth' })
+
+    resolver?.(respuestaExitosa)
+  })
+
+  it('desplaza la vista cuando la respuesta llega al intercambio (RF-02)', async () => {
+    let resolver: ((valor: ConsultaResponse) => void) | undefined
+    vi.mocked(consultar).mockImplementation(
+      () =>
+        new Promise<ConsultaResponse>((resolve) => {
+          resolver = resolve
+        }),
+    )
+    const espiarScroll = vi
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => {})
+
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    await usuario.type(campo(), 'monto máximo')
+    await usuario.click(screen.getByRole('button', { name: /^enviar$/i }))
+
+    await waitFor(() => expect(espiarScroll).toHaveBeenCalledTimes(1))
+    resolver?.(respuestaExitosa)
+    await waitFor(() => expect(screen.getByText('El monto máximo es $50.000.000.')).toBeInTheDocument())
+
+    await waitFor(() => expect(espiarScroll).toHaveBeenCalledTimes(2))
+    expect(espiarScroll).toHaveBeenLastCalledWith({ block: 'nearest', behavior: 'smooth' })
+  })
+
+  it('desplaza la vista sin animación cuando el usuario prefiere movimiento reducido (RNF-01)', async () => {
+    let resolver: ((valor: ConsultaResponse) => void) | undefined
+    vi.mocked(consultar).mockImplementation(
+      () =>
+        new Promise<ConsultaResponse>((resolve) => {
+          resolver = resolve
+        }),
+    )
+    vi.spyOn(window, 'matchMedia').mockImplementation((consulta: string) => ({
+      matches: consulta.includes('prefers-reduced-motion: reduce'),
+      media: consulta,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }))
+    const espiarScroll = vi
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => {})
+
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    await usuario.type(campo(), 'monto máximo')
+    await usuario.click(screen.getByRole('button', { name: /^enviar$/i }))
+
+    await screen.findByLabelText('Consultando')
+    await waitFor(() => expect(espiarScroll).toHaveBeenCalledTimes(1))
+    expect(espiarScroll).toHaveBeenLastCalledWith({ block: 'nearest', behavior: 'auto' })
+
+    resolver?.(respuestaExitosa)
+    await waitFor(() => expect(espiarScroll).toHaveBeenCalledTimes(2))
+    expect(espiarScroll).toHaveBeenLastCalledWith({ block: 'nearest', behavior: 'auto' })
+  })
 })

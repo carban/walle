@@ -243,6 +243,8 @@ body {
      propio borde (usuario a la derecha, asistente a la izquierda) en lugar de
      hacerlo dentro de una columna estrecha anclada a la izquierda. */
   width: 100%;
+  /* El desplazamiento al llegar un intercambio deja aire entre la burbuja y el borde. */
+  scroll-margin-block: 16px;
 }
 
 .burbuja {
