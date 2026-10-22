@@ -1,2 +1,37 @@
-prueba-tecnica.pdf
+# ── Secretos ────────────────────────────────────────────────────────────────
 .env
+.env.local
+*.pem
+
+# ── Python ──────────────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ── Persistencia local ──────────────────────────────────────────────────────
+storage/*.db
+storage/*.db-wal
+storage/*.db-shm
+
+# ── Frontend (Node) ─────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# ── Sistema operativo / editores ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Material de la prueba ───────────────────────────────────────────────────
+prueba-tecnica.pdf

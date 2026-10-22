@@ -1,1 +1,1 @@
-# walle
+# Walle — Asistente interno para asesores comerciales
