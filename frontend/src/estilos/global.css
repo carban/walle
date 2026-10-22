@@ -239,7 +239,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 760px;
+  /* Ocupa el ancho completo del area de mensajes: cada burbuja se alinea en su
+     propio borde (usuario a la derecha, asistente a la izquierda) en lugar de
+     hacerlo dentro de una columna estrecha anclada a la izquierda. */
   width: 100%;
 }
 
@@ -251,7 +253,9 @@ body {
 
 .burbuja--usuario {
   align-self: flex-end;
-  max-width: 80%;
+  /* Anclado al borde derecho del chat, con tope de ancho para que el texto no
+     se estire en pantallas anchas. */
+  max-width: min(80%, 760px);
   background: var(--color-usuario);
   color: var(--color-usuario-texto);
 }
@@ -259,6 +263,7 @@ body {
 .burbuja--asistente {
   align-self: flex-start;
   width: 100%;
+  max-width: 760px;
   background: var(--color-asistente);
   border: 1px solid var(--color-borde);
 }
