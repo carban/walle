@@ -8,7 +8,7 @@
 
 ## 1. Contexto
 
-La API ya expone el ciclo completo de consulta (`POST /api/consultar`) y el historial persistido (`GET /api/historial`, `GET /api/historial/{id}`, `DELETE /api/historial/{id}`), pero el asesor necesita una interfaz donde escribir la pregunta, leer la respuesta con sus fuentes y recuperar consultas anteriores sin herramientas de línea de comandos.
+La API ya expone el ciclo completo de consulta (`POST /api/consultar`) y el historial persistido (`GET /api/consultas`, `GET /api/consultas/{id}`, `DELETE /api/consultas/{id}`), pero el asesor necesita una interfaz donde escribir la pregunta, leer la respuesta con sus fuentes y recuperar consultas anteriores sin herramientas de línea de comandos.
 
 El enunciado de la prueba exige que la interfaz permita **realizar consultas, visualizar la respuesta, visualizar las fuentes, visualizar errores y mostrar el estado de procesamiento**, y que se ejecute completamente de forma local. No se evalúa el diseño visual, pero sí que la solución sea operable de punta a punta.
 
@@ -27,7 +27,7 @@ Proveer una interfaz web local que permita al asesor realizar consultas, leer la
 - Visualización de fuentes (documento y fragmento) y del estado de la respuesta.
 - Panel lateral con el historial: listado, selección de una consulta, borrado por índice y acción de nueva conversación.
 - Manejo visible de errores: validación (422), red y servidor.
-- Configuración de la URL de la API y de los orígenes permitidos (CORS) para que ambos servicios convivan en local.
+- Configuración de la URL de la API y de los orígenes permitidos (CORS) para que ambos servicios convivan en local. El cliente apunta por defecto a la API del **puerto 8000** (`VITE_API_URL=http://127.0.0.1:8000`).
 - Estilos en CSS puro, sin librería de UI ni framework de estilos.
 
 ### 3.2 Fuera del alcance
@@ -192,9 +192,12 @@ Característica: Interfaz web del asistente Walle
 | RF-02 | Consulta válida, sin información suficiente, bloqueada | `frontend/src/__tests__/Chat.test.tsx` |
 | RF-03 | Consulta válida | `frontend/src/__tests__/Chat.test.tsx` |
 | RF-04 | Panel lateral, seleccionar, borrar, nueva conversación | `frontend/src/__tests__/PanelHistorial.test.tsx` |
-| RF-05 | Error de validación, error de red, estados no erróneos | `frontend/src/__tests__/Chat.test.tsx` |
+| RF-05 | Error de validación, error de red, estados no erróneos | `frontend/src/__tests__/Chat.test.tsx`, `frontend/src/__tests__/PanelHistorial.test.tsx` |
 | RNF-01 | Teclado y `aria-live` | `frontend/src/__tests__/accesibilidad.test.tsx` |
 | RNF-02 | Pantalla estrecha | `frontend/src/__tests__/PanelHistorial.test.tsx` |
 | RNF-03 | Sin bloqueos de interfaz | `frontend/src/__tests__/Chat.test.tsx` |
-| RNF-04 | Sin CORS en local | `tests/integration/test_cors.py` + prueba manual en navegador |
-| RNF-05 | TypeScript estricto y cliente HTTP único | `npm run lint` + `npm run typecheck` |
+| RNF-04 | Sin CORS en local | `tests/integration/test_cors.py`, `frontend/src/__tests__/cliente.test.ts` + prueba manual en navegador |
+| RNF-05 | TypeScript estricto y cliente HTTP único | `frontend/src/__tests__/cliente.test.ts` + `npm run lint` + `npm run typecheck` |
+
+Además, `frontend/src/__tests__/integracion.e2e.test.tsx` monta la aplicación contra la API real
+del puerto 8000 (se omite si la API no está levantada).

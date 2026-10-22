@@ -129,8 +129,8 @@ Del lado del frontend (`frontend/.env`, variables `VITE_*`):
 
 | Variable | Por defecto | Descripción |
 |----------|-------------|-------------|
-| `VITE_API_URL` | vacío | Vacío ⇒ rutas relativas y **proxy de Vite** (sin peticiones entre orígenes). Con valor ⇒ el navegador llama directo a la API (el origen debe estar en `WALLE_CORS_ORIGINS`) |
-| `VITE_API_URL_FALLBACK` | `http://127.0.0.1:8000` | URL a la que se reintenta si la petición relativa no llega a la API (build servido como estático) |
+| `VITE_API_URL` | `http://127.0.0.1:8000` | URL de la API a la que llama el navegador. Vacío ⇒ rutas relativas y **proxy de Vite** (sin peticiones entre orígenes) |
+| `VITE_API_URL_FALLBACK` | `http://127.0.0.1:8000` | URL a la que se reintenta si la petición principal no llega a la API (build servido como estático) |
 
 ```bash
 cp .env.example .env   # y completar OPENROUTER_API_KEY
@@ -169,15 +169,37 @@ interactiva de la API está en <http://127.0.0.1:8000/docs> y la sonda de dispon
 cd frontend && npm run dev
 ```
 
-La interfaz queda en <http://localhost:5173>. **No hay errores de CORS** porque el cliente usa rutas
-relativas y el proxy de Vite (`/api` → `127.0.0.1:8000`) reenvía las peticiones: el navegador nunca
-sale de su propio origen. Además la API mantiene una allowlist explícita de orígenes
-(`localhost:5173` y `127.0.0.1:5173`, que el navegador trata como distintos) como red de seguridad.
+La interfaz queda en <http://localhost:5173> y **llama directamente a la API del puerto 8000**
+(`VITE_API_URL`). Como son orígenes distintos, la API mantiene una allowlist explícita que acepta
+`http://localhost:5173` y `http://127.0.0.1:5173` (el navegador los trata como orígenes diferentes);
+toda otra origem se rechaza. En la consola del navegador **no aparece ningún error de CORS**.
+
+El proxy de Vite (`/api` → `127.0.0.1:8000`) queda como red de seguridad: si la llamada directa a la
+API falla, el cliente reintenta por rutas relativas y el proxy alcanza la misma API.
 
 Para revisar el build de producción, `npm run build && npm run preview` levanta el frontend en el
 puerto 4173 **con el mismo proxy** (sin él, `/api` devolvería el `index.html` y el chat se vería
 roto). Si el frontend se sirve desde otro servidor sin proxy, el cliente reintenta contra
 `VITE_API_URL_FALLBACK`.
+
+#### Recorrido manual en el navegador (checklist de T-224)
+
+Con la API en el 8000 y `npm run dev` en el 5173, verificado en Chromium:
+
+| # | Comprobación | Resultado |
+|---|--------------|-----------|
+| 1 | El panel lateral carga el historial al abrir la aplicación | ✅ |
+| 2 | Una consulta válida muestra respuesta, estado `Exitosa` y sus fuentes | ✅ |
+| 3 | El campo queda vacío y con el foco de vuelta tras enviar | ✅ |
+| 4 | Una pregunta fuera del corpus muestra `Sin información suficiente` con el mensaje canónico y **sin** aviso de error | ✅ |
+| 5 | Una solicitud de información restringida muestra `Bloqueada por seguridad` | ✅ |
+| 6 | Al elegir una entrada del historial, el chat muestra la consulta completa con sus fuentes | ✅ |
+| 7 | «Nueva conversación» vacía el chat y deja intacto el historial | ✅ |
+| 8 | El borrado pide confirmación y la entrada desaparece del panel | ✅ |
+| 9 | El botón del panel oculta y muestra el historial sin perder el chat | ✅ |
+| 10 | En pantalla estrecha (< 900 px) el panel arranca oculto y se abre y cierra sin tapar el botón de la barra | ✅ |
+| 11 | Con la API detenida, se muestra un aviso accionable, sin trazas, y la interfaz sigue operativa | ✅ |
+| 12 | **Ningún error de CORS en la consola del navegador** | ✅ |
 
 ### 6.3 Modo de un solo servicio (opt-in)
 
@@ -188,8 +210,9 @@ cd frontend && npm run build                      # genera frontend/dist
 WALLE_SERVIR_FRONTEND=true uv run uvicorn walle.main:app --port 8000
 ```
 
-Con `WALLE_SERVIR_FRONTEND=true` la API sirve `frontend/dist` como aplicación de una sola página.
-Por defecto está **desactivado**, de modo que 8000 es siempre la API y 5173 el chat.
+Con `WALLE_SERVIR_FRONTEND=true` la API sirve `frontend/dist` como aplicación de una sola página:
+en `http://127.0.0.1:8000` se abre el chat y las rutas `/api/*` siguen siendo de la API. Por defecto
+está **desactivado**, de modo que 8000 es siempre la API y 5173 el chat.
 
 ### 6.4 Ejemplo de uso
 
@@ -233,8 +256,11 @@ npm run build
 uv run pytest -m integration
 ```
 
-**Estado actual**: 120 pruebas de backend (incluidas 4 de CORS y las de contrato) y 11 de frontend, en
-verde; `ruff`, `mypy --strict`, `oxlint` y `tsc` sin observaciones.
+**Estado actual**: 124 pruebas de backend (incluidas 4 de CORS, las de contrato y las de separación
+de servicios) y 47 de frontend, en verde; `ruff`, `mypy --strict`, `oxlint` y `tsc` sin
+observaciones. El recorrido manual en navegador (consulta con fuentes, respuesta insuficiente,
+intento bloqueado, panel lateral, borrado, nueva conversación, error de red con la API detenida y
+pantalla estrecha) queda documentado en el apartado 6.2.
 
 ### Cobertura de los casos exigidos
 

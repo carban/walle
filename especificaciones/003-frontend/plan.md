@@ -112,8 +112,8 @@ Un único módulo `src/api/cliente.ts` con la URL base leída de `import.meta.en
 ```ts
 consultar(pregunta: string): Promise<ConsultaResponse>
 obtenerHistorial(): Promise<ResumenConsulta[]>
-obtenerConsulta(id: number): Promise<DetalleConsulta>
-borrarConsulta(id: number): Promise<void>
+obtenerConsulta(id: number): Promise<ResumenConsulta>
+borrarConsulta(id: number): Promise<BorradoRespuesta>
 ```
 
 Reglas:
@@ -128,15 +128,16 @@ Reglas:
 | Aspecto | Desarrollo | Producción local |
 |---------|-----------|------------------|
 | Origen del cliente | `http://localhost:5173` | `http://127.0.0.1:8000` (mismo origen) |
-| URL de la API | `http://127.0.0.1:8000` | relativa (`/api`) |
+| URL de la API | `http://127.0.0.1:8000` (directa) | relativa (`/api`) |
 | CORS | Allowlist en la API: `http://localhost:5173`, `http://127.0.0.1:5173` | No aplica (mismo origen) |
-| Proxy de Vite | `/api` → `http://127.0.0.1:8000` (evita CORS incluso) | No aplica |
+| Proxy de Vite | `/api` → `http://127.0.0.1:8000` (respaldo) | No aplica |
 
 Decisiones para que no haya errores de CORS:
 
 1. La API declara los orígenes de desarrollo en su configuración (`WALLE_CORS_ORIGINS`), con `localhost` **y** `127.0.0.1` (los navegadores los tratan como orígenes distintos).
-2. El proxy de Vite hace que, en desarrollo, el navegador llame a `http://localhost:5173/api/...` y Vite reenvíe a la API: la petición nunca es de origen cruzado. El allowlist de CORS queda como red de seguridad (p. ej. si alguien abre el front en otro puerto).
-3. Las credenciales de la API se aplican solo a orígenes de la allowlist, nunca con comodín.
+2. El cliente llama **directamente** a la API del puerto 8000 (`VITE_API_URL`), de modo que el despliegue coincide con lo que dice la especificación: el chat habla con la API del 8000.
+3. El proxy de Vite queda como **red de seguridad**: si la llamada directa falla, el cliente reintenta por rutas relativas y Vite reenvía a la misma API.
+4. Las credenciales de la API se aplican solo a orígenes de la allowlist, nunca con comodín.
 
 ### 1.5 Estilos (CSS puro)
 
@@ -150,7 +151,7 @@ Decisiones para que no haya errores de CORS:
 - **Vitest + @testing-library/react + jsdom** como base de la suite.
 - `msw` no es necesario: las pruebas mockean el módulo `src/api/cliente.ts` con `vi.mock`.
 - Casos: envío de consulta, estado vacío, error 422, error de red, estados de la respuesta, renderizado de fuentes, listado del historial, selección, borrado y nueva conversación.
-- `npm run typecheck` (`tsc --noEmit`) y `npm run lint` (ESLint con la configuración oficial de Vite) como puertas obligatorias.
+- `npm run typecheck` (`tsc --noEmit`) y `npm run lint` (`oxlint`) como puertas obligatorias.
 
 ## 2. Componentes
 
@@ -169,9 +170,9 @@ Decisiones para que no haya errores de CORS:
 
 | Suite | Contenido | Herramientas |
 |-------|-----------|--------------|
-| `frontend/src/__tests__/` | Chat, PanelHistorial, accesibilidad | Vitest, Testing Library, jsdom |
+| `frontend/src/__tests__/` | Chat, PanelHistorial, accesibilidad, cliente HTTP, integración | Vitest, Testing Library, jsdom |
 | `npm run typecheck` | TypeScript estricto sin errores | `tsc --noEmit` |
-| `npm run lint` | ESLint (configuración oficial de Vite) | ESLint |
+| `npm run lint` | Análisis estático del cliente | `oxlint` |
 | `tests/integration/test_cors.py` (backend) | Cabecera `Access-Control-Allow-Origin` para los orígenes permitidos y ausencia para los no permitidos | pytest + TestClient |
 | Manual | Recorrido completo en el navegador: consulta, fuentes, panel, borrado, error de red | Checklist en el README |
 

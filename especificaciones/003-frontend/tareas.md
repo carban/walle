@@ -19,14 +19,14 @@
   - Criterio: `npm run typecheck` y `npm run lint` en verde sobre la app inicial.
 - [x] **T-203** Configurar Vitest + Testing Library + jsdom, con `setupTests.ts` y el plugin de cobertura; añadir `test` al script de build de CI local.
   - Criterio: `npm run test` ejecuta una prueba de humo en verde.
-- [x] **T-204** Configurar `vite.config.ts` con el plugin de React y el proxy `/api` → `http://127.0.0.1:8000` con `changeOrigin: true`.
+- [x] **T-204** Configurar `vite.config.ts` con el plugin de React y el proxy `/api` → `http://127.0.0.1:8000` con `changeOrigin: true` (respaldo cuando el cliente llama directo a la API).
   - Criterio: desde el navegador, `fetch('/api/salud')` en `:5173` llega a la API sin error de CORS.
-- [x] **T-205** Definir `src/tipos.ts` alineado con el contrato de la API: `Estado`, `Fuente`, `ConsultaResponse`, `ResumenConsulta`, `DetalleConsulta`, `ErrorValidacion`, `ErrorServidor`.
+- [x] **T-205** Definir `src/tipos.ts` alineado con el contrato de la API: `Estado`, `Fuente`, `ConsultaRequest`, `ConsultaResponse`, `ResumenConsulta`, `BorradoRespuesta`, `ErrorValidacion`, `ErrorServidor`.
   - Criterio: los tipos coinciden con el esquema de `src/walle/api/esquema.py` (revisión cruzada en el checklist final).
 
 ## Fase 2 — Cliente HTTP
 
-- [x] **T-206** Implementar `src/api/cliente.ts`: URL base desde `import.meta.env.VITE_API_URL` (por defecto `http://127.0.0.1:8000`, vacío ⇒ rutas relativas), `consultar`, `obtenerHistorial`, `obtenerConsulta`, `borrarConsulta`.
+- [x] **T-206** Implementar `src/api/cliente.ts`: URL base desde `import.meta.env.VITE_API_URL` (por defecto `http://127.0.0.1:8000`, vacío ⇒ rutas relativas), `consultar`, `obtenerHistorial` (`GET /api/consultas?limite=200`), `obtenerConsulta` (`GET /api/consultas/{id}`), `borrarConsulta` (`DELETE /api/consultas/{id}`).
   - Criterio: pruebas unitarias con `fetch` simulado verifican URL, método y cuerpo de cada llamada.
 - [x] **T-207** Traducir errores: `422` → `ErrorValidacion` con el mensaje del servidor; fallo de red o `5xx` → `ErrorServidor` con mensaje accionable; nunca incluir `stack` ni trazas.
   - Criterio: `tests/cliente.test.ts` cubre 200, 422, 500 y excepción de red.
@@ -55,9 +55,9 @@
 
 - [x] **T-215** Implementar `src/componentes/PanelHistorial.tsx`: carga del historial al montar, entradas con pregunta, fecha y hora y estado, más la acción de nueva conversación.
   - Criterio: prueba con tres entradas que verifica el orden y el contenido.
-- [x] **T-216** Implementar la selección de una consulta: `GET /api/historial/{id}` y muestra del intercambio completo en el chat sin borrar lo anterior.
+- [x] **T-216** Implementar la selección de una consulta: `GET /api/consultas/{id}` y muestra del intercambio completo en el chat sin borrar lo anterior.
   - Criterio: prueba que verifica que el detalle se pide y se pinta.
-- [x] **T-217** Implementar el borrado por índice: `DELETE /api/historial/{id}`, actualización optimista del listado y reconciliación posterior con el servidor.
+- [x] **T-217** Implementar el borrado por índice: `DELETE /api/consultas/{id}`, actualización optimista del listado y reconciliación posterior con el servidor.
   - Criterio: prueba que verifica la llamada, la desaparición de la entrada y el refresco final.
 - [x] **T-218** Implementar "Nueva conversación": vacía el chat, conserva el historial y limpia el aviso.
   - Criterio: prueba que verifica que el historial no cambia.
@@ -74,15 +74,15 @@
 ## Fase 7 — Integración con el backend
 
 - [x] **T-222** Verificar la allowlist de CORS del backend: `http://localhost:5173` y `http://127.0.0.1:5173` aceptados, otros rechazados; escribir la prueba `tests/integration/test_cors.py`.
-  - Criterio: la prueba pasa y no hay peticiones con comodín.
-- [x] **T-223** Servir `frontend/dist` desde FastAPI como SPA (fallback a `index.html` para rutas del cliente) y comprobar el modo de un solo servicio.
-  - Criterio: `npm run build` seguido de `uvicorn` sirve la aplicación en `http://127.0.0.1:8000`.
+  - Criterio: la prueba pasa y no hay peticiones con comodín. El cliente apunta por defecto a `http://127.0.0.1:8000`, de modo que el origen `http://localhost:5173` es el que cruza el borde.
+- [x] **T-223** Servir `frontend/dist` desde FastAPI como SPA (la raíz sirve `index.html` y las rutas del cliente caen también en `index.html`) y comprobar el modo de un solo servicio.
+  - Criterio: `npm run build` seguido de `uvicorn` sirve la aplicación en `http://127.0.0.1:8000` y las rutas `/api/*` siguen siendo de la API.
 - [x] **T-224** Recorrido manual completo en el navegador: consulta con fuentes, respuesta insuficiente, intento bloqueado, panel lateral, borrado, nueva conversación, error de red con la API detenida.
   - Criterio: checklist completado y documentado en el README.
 
 ## Fase 8 — Documentación de la característica
 
-- [x] **T-225** Documentar en `README.md` la sección del frontend: instalación con npm, `npm run dev`, `npm run build`, `npm run test`, variables `VITE_API_URL` y `WALLE_CORS_ORIGINS`, y el modo de un solo servicio.
+- [x] **T-225** Documentar en `README.md` la sección del frontend: instalación con npm, `npm run dev`, `npm run build`, `npm run test`, variables `VITE_API_URL` y `WALLE_CORS_ORIGINS`, el modo de un solo servicio y el checklist del recorrido manual en navegador.
 - [x] **T-226** Registrar en `docs/Cuestionario.md` las respuestas de la interfaz y de la operación local.
 - [x] **T-227** Revisar la matriz de trazabilidad §8 de la especificación: cada RF/RNF con al menos una prueba.
 - [x] **T-228** Verificar que `package.json` no contiene dependencias de UI de terceros y que `package-lock.json` está versionado.
@@ -110,4 +110,5 @@ T-201 → T-202 → T-203 → T-204 → T-205 → T-206 → T-207
 - La aplicación funciona con dos servicios (`npm run dev` + `uvicorn`) sin errores de CORS en la consola del navegador.
 - La aplicación funciona también en modo de un solo servicio servida por la API.
 - Los 5 RF y los 5 RNF cubiertos por pruebas (matriz §8 verificada).
+- El cliente apunta a la API del **puerto 8000** (`VITE_API_URL=http://127.0.0.1:8000`) y no hay errores de CORS en la consola del navegador.
 - El recorrido manual del backend y del frontend queda documentado en el README.
