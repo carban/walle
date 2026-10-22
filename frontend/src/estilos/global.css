@@ -1,0 +1,538 @@
+/*
+ * Estilos del frontend: CSS puro, sin librerias ni frameworks.
+ *
+ * Las variables de tema se declaran aqui y se reutilizan en todo el documento.
+ * Los estados de respuesta se distinguen por color y por texto: el color nunca
+ * es el unico indicador (RNF-01).
+ */
+
+:root {
+  --color-fondo: #f6f7f9;
+  --color-superficie: #ffffff;
+  --color-texto: #1b1f24;
+  --color-texto-suave: #5b6570;
+  --color-borde: #d9dee4;
+  --color-acento: #1f6feb;
+  --color-acento-oscuro: #1a5fc8;
+  --color-error: #b42318;
+  --color-error-fondo: #fef3f2;
+  --color-exito: #067647;
+  --color-exito-fondo: #ecfdf3;
+  --color-aviso: #b54708;
+  --color-aviso-fondo: #fffaeb;
+  --color-usuario: #1f6feb;
+  --color-usuario-texto: #ffffff;
+  --color-asistente: #ffffff;
+  --color-foco: #1f6feb;
+  --radio: 10px;
+  --sombra: 0 1px 3px rgb(16 24 40 / 8%);
+  --ancho-panel: 280px;
+  --alto-barra: 64px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* ── Estructura ─────────────────────────────────────────────────────────── */
+
+.aplicacion {
+  display: grid;
+  grid-template-columns: var(--ancho-panel) 1fr;
+  height: 100%;
+}
+
+.aplicacion--sin-panel {
+  grid-template-columns: 0 1fr;
+}
+
+.principal {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+/* Barra principal: siempre visible, aloja el control del panel lateral. */
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: var(--color-superficie);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+/* ── Panel lateral ──────────────────────────────────────────────────────── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-superficie);
+  border-right: 1px solid var(--color-borde);
+  overflow: hidden;
+}
+
+/* El atributo `hidden` debe ganar a `display: flex` del panel. */
+.panel[hidden] {
+  display: none;
+}
+
+.panel__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel__titulo {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.panel__lista {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.panel__lista ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel__vacio {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-size: 14px;
+}
+
+.panel__item {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.panel__consulta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radio);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.panel__consulta:hover {
+  background: var(--color-fondo);
+}
+
+.panel__pregunta {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.panel__meta {
+  color: var(--color-texto-suave);
+  font-size: 12px;
+}
+
+.panel__confirmacion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+}
+
+.panel__confirmacion-texto {
+  font-size: 13px;
+}
+
+/* ── Chat ───────────────────────────────────────────────────────────────── */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.chat__mensajes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chat__vacio {
+  margin: auto;
+  max-width: 460px;
+  text-align: center;
+  color: var(--color-texto-suave);
+}
+
+.chat__vacio h2 {
+  margin: 0 0 8px;
+  color: var(--color-texto);
+  font-size: 22px;
+}
+
+.chat__vacio p {
+  margin: 0;
+}
+
+.intercambio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 760px;
+  width: 100%;
+}
+
+.burbuja {
+  padding: 12px 14px;
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.burbuja--usuario {
+  align-self: flex-end;
+  max-width: 80%;
+  background: var(--color-usuario);
+  color: var(--color-usuario-texto);
+}
+
+.burbuja--asistente {
+  align-self: flex-start;
+  width: 100%;
+  background: var(--color-asistente);
+  border: 1px solid var(--color-borde);
+}
+
+.burbuja__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.burbuja__texto {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.burbuja__meta {
+  color: var(--color-texto-suave);
+  font-size: 12px;
+}
+
+.burbuja--carga {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-texto-suave);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-borde);
+  border-top-color: var(--color-acento);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+/* ── Etiquetas de estado ────────────────────────────────────────────────── */
+
+.etiqueta {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.etiqueta--exitosa {
+  background: var(--color-exito-fondo);
+  color: var(--color-exito);
+  border-color: var(--color-exito);
+}
+
+.etiqueta--sin-informacion-suficiente {
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso);
+  border-color: var(--color-aviso);
+}
+
+.etiqueta--bloqueada-por-seguridad {
+  background: var(--color-error-fondo);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* ── Fuentes ────────────────────────────────────────────────────────────── */
+
+.fuentes {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-borde);
+}
+
+.fuentes__titulo {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-texto-suave);
+}
+
+.fuentes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuentes__item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  background: var(--color-fondo);
+  border-radius: 8px;
+}
+
+.fuentes__documento {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.fuentes__fragmento {
+  color: var(--color-texto-suave);
+  font-size: 12px;
+}
+
+/* ── Compositor ─────────────────────────────────────────────────────────── */
+
+.compositor {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'etiqueta etiqueta'
+    'campo enviar';
+  gap: 8px 12px;
+  padding: 16px 24px;
+  background: var(--color-superficie);
+  border-top: 1px solid var(--color-borde);
+}
+
+.compositor__etiqueta {
+  grid-area: etiqueta;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.compositor__campo {
+  grid-area: campo;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  font: inherit;
+  resize: vertical;
+  background: var(--color-superficie);
+  color: inherit;
+}
+
+.compositor__campo:focus {
+  border-color: var(--color-acento);
+}
+
+/* ── Botones ────────────────────────────────────────────────────────────── */
+
+.boton {
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.boton--primario {
+  grid-area: enviar;
+  align-self: end;
+  background: var(--color-acento);
+  color: #ffffff;
+}
+
+.boton--primario:hover:not(:disabled) {
+  background: var(--color-acento-oscuro);
+}
+
+.boton--secundario {
+  background: var(--color-superficie);
+  border-color: var(--color-borde);
+  color: var(--color-texto);
+}
+
+.boton--peligro {
+  background: var(--color-error);
+  color: #ffffff;
+}
+
+.boton--icono {
+  padding: 4px 10px;
+  background: var(--color-superficie);
+  border-color: var(--color-borde);
+  color: var(--color-texto);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.boton--borrar {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-texto-suave);
+  cursor: pointer;
+}
+
+.boton--borrar:hover {
+  background: var(--color-error-fondo);
+  color: var(--color-error);
+}
+
+/* ── Aviso de error ─────────────────────────────────────────────────────── */
+
+.aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 24px 0;
+  padding: 12px 14px;
+  background: var(--color-error-fondo);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radio);
+  color: var(--color-error);
+}
+
+.aviso__texto {
+  font-size: 14px;
+}
+
+/* ── Pantalla estrecha (RNF-02) ─────────────────────────────────────────── */
+
+.panel__cerrar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .aplicacion,
+  .aplicacion--sin-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: min(var(--ancho-panel), 85vw);
+    box-shadow: 0 0 24px rgb(16 24 40 / 18%);
+  }
+
+  /* El panel se superpone al chat: necesita fondo opaco y su boton de cierre. */
+  .panel__cerrar {
+    display: inline-flex;
+  }
+
+  .barra {
+    position: relative;
+    z-index: 10;
+  }
+
+  .chat__mensajes {
+    padding: 16px;
+  }
+
+  .compositor {
+    padding: 12px 16px;
+  }
+
+  .aviso {
+    margin: 12px 16px 0;
+  }
+}
