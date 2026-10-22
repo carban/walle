@@ -28,7 +28,7 @@ function consulta(indice: number, pregunta: string): ResumenConsulta {
     fuentes: [{ documento: 'Productos de Crédito.md', fragmento: 'Condiciones' }],
     estado: 'Exitosa',
     duracion_ms: 900,
-    modelo: 'minimax/minimax-m3.1-flash:free',
+    modelo: 'cohere/north-mini-code:free',
   }
 }
 

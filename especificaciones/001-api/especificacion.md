@@ -60,7 +60,7 @@ El sistema aplica tres controles: (a) **control de acceso al corpus**, solo los 
 El tiempo total de una consulta (validación → respuesta HTTP) tiene un objetivo de p95 ≤ 12 s con el modelo gratuito configurado, y un timeout de invocación al proveedor de 30 s (configurable). La interfaz no necesita streaming: una latencia acotada con indicador de carga es suficiente.
 
 ### RNF-02 — Costo por consulta
-El modelo configurado por defecto es gratuito (`minimax/minimax-m3.1-flash:free`). El sistema no invoca al proveedor cuando la consulta no es respondible con el corpus, lo que evita gastar cuota y latencia en preguntas fuera de alcance. El costo monetario objetivo por consulta es cero.
+El modelo configurado por defecto es gratuito (`cohere/north-mini-code:free`). El sistema no invoca al proveedor cuando la consulta no es respondible con el corpus, lo que evita gastar cuota y latencia en preguntas fuera de alcance. El costo monetario objetivo por consulta es cero.
 
 ### RNF-03 — Seguridad y privacidad
 Solo se envía al proveedor externo el contenido del documento permitido seleccionado y la pregunta del usuario (nunca el corpus completo, nunca documentos restringidos). Ninguna credencial, token ni fragmento restringido aparece en respuestas, logs o trazas de excepción. Las trazas se pueden desactivar por configuración sin romper el flujo.

@@ -15,7 +15,7 @@ class ClienteFalso:
         self,
         respuestas: Sequence[str] | None = None,
         error: Exception | None = None,
-        modelo: str = "minimax/minimax-m3.1-flash:free",
+        modelo: str = "cohere/north-mini-code:free",
     ) -> None:
         self.respuestas = list(respuestas or [])
         self.error = error
@@ -35,7 +35,7 @@ class ClienteFalso:
 class ClienteCaido:
     """Cliente que siempre falla, para probar la degradacion."""
 
-    modelo = "minimax/minimax-m3.1-flash:free"
+    modelo = "cohere/north-mini-code:free"
 
     def __init__(self) -> None:
         self.invocaciones = 0

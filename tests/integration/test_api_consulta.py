@@ -143,7 +143,7 @@ def test_salud_informa_corpus_y_proveedor(cliente: TestClient) -> None:
     cuerpo = respuesta.json()
     assert cuerpo["estado"] == "ok"
     assert cuerpo["corpus"]["documentos"] == 5
-    assert cuerpo["proveedor"]["modelo"] == "minimax/minimax-m3.1-flash:free"
+    assert cuerpo["proveedor"]["modelo"] == "cohere/north-mini-code:free"
 
 
 def test_error_no_controlado_no_filtra_detalles(cliente: TestClient) -> None:

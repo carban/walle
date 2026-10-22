@@ -29,7 +29,7 @@ describe('Accesibilidad de la interfaz', () => {
       estado: 'Exitosa',
       consulta_id: 1,
       duracion_ms: 1200,
-      modelo: 'minimax/minimax-m3.1-flash:free',
+      modelo: 'cohere/north-mini-code:free',
     })
   })
 

@@ -91,7 +91,7 @@ pregunta
 | Gestor | `uv` | Entorno y dependencias reproducibles en un solo comando |
 | API | FastAPI + Pydantic v2 | Validación tipada, OpenAPI automático y asíncrono |
 | Cliente HTTP | `httpx` | Timeout, reintentos y transporte simulable en pruebas |
-| Proveedor | OpenRouter (`minimax/minimax-m3.1-flash:free`) | Modelo **gratuito** y suficiente para respuestas fundamentadas |
+| Proveedor | OpenRouter (`cohere/north-mini-code:free`) | Modelo **gratuito** y suficiente para respuestas fundamentadas |
 | Persistencia | `sqlite3` (stdlib) | Cero dependencias, un archivo, sin servidor |
 | Frontend | React 19 + TypeScript + Vite | Tipado del contrato de la API y build rápido |
 | Pruebas | `pytest` + `pytest-cov` (backend), `vitest` + Testing Library (frontend) | Suites herméticas en ambos extremos |
@@ -114,7 +114,7 @@ Todo se configura por variables de entorno; el archivo `.env` (ignorado por git)
 | Variable | Por defecto | Descripción |
 |----------|-------------|-------------|
 | `OPENROUTER_API_KEY` | — | Credencial del proveedor. **Sin ella el sistema opera en modo degradado** (respuesta extractiva local) |
-| `WALLE_MODELO` | `minimax/minimax-m3.1-flash:free` | Modelo principal (gratuito) |
+| `WALLE_MODELO` | `cohere/north-mini-code:free` | Modelo principal (gratuito) |
 | `WALLE_TIMEOUT_SEGUNDOS` | `30` | Timeout de la invocación al proveedor |
 | `WALLE_REINTENTOS` | `1` | Reintentos ante 429/5xx |
 | `WALLE_UMBRAL_RELEVANCIA` | `1.0` | Umbral mínimo de relevancia documental |
@@ -232,7 +232,7 @@ curl -X POST http://127.0.0.1:8000/api/consultar \
   "estado": "Exitosa",
   "consulta_id": 1,
   "duracion_ms": 1875,
-  "modelo": "minimax/minimax-m3.1-flash:free"
+  "modelo": "cohere/north-mini-code:free"
 }
 ```
 

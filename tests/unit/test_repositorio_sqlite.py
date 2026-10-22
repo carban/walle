@@ -31,7 +31,7 @@ def _consulta(pregunta: str = "pregunta", fecha: str = "2026-10-21T10:00:00+00:0
         fuentes=[{"documento": "Productos de Crédito.md", "fragmento": "Condiciones"}],
         estado=Estado.EXITOSA,
         duracion_ms=1234,
-        modelo="minimax/minimax-m3.1-flash:free",
+        modelo="cohere/north-mini-code:free",
     )
 
 
@@ -56,7 +56,7 @@ def test_consulta_guarda_todos_los_campos(repositorio: RepositorioSQLite) -> Non
     assert consulta.respuesta == "respuesta"
     assert consulta.estado == Estado.EXITOSA
     assert consulta.duracion_ms == 1234
-    assert consulta.modelo == "minimax/minimax-m3.1-flash:free"
+    assert consulta.modelo == "cohere/north-mini-code:free"
     assert consulta.fuentes == [
         {"documento": "Productos de Crédito.md", "fragmento": "Condiciones"}
     ]

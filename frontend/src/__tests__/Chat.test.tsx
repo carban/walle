@@ -25,7 +25,7 @@ const respuestaExitosa: ConsultaResponse = {
   estado: 'Exitosa',
   consulta_id: 1,
   duracion_ms: 1200,
-  modelo: 'minimax/minimax-m3.1-flash:free',
+  modelo: 'cohere/north-mini-code:free',
 }
 
 function campo() {
@@ -188,7 +188,7 @@ describe('Chat', () => {
     await usuario.click(screen.getByRole('button', { name: /^enviar$/i }))
 
     await waitFor(() => expect(screen.getByText('1200 ms')).toBeInTheDocument())
-    expect(screen.getByText('minimax/minimax-m3.1-flash:free')).toBeInTheDocument()
+    expect(screen.getByText('cohere/north-mini-code:free')).toBeInTheDocument()
   })
 
   it('muestra el texto de la respuesta tal cual, con sus saltos de línea (RF-02)', async () => {

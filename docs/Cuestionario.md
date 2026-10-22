@@ -14,7 +14,7 @@
 | **OpenCode** (agente de terminal) | Orquestación del desarrollo: lectura de la prueba técnica, redacción de la constitución, especificaciones, planes, tareas, código, pruebas y documentación. |
 | **Claude Sonnet 4.5** | Modelo principal del agente para diseño de especificaciones, implementación del backend y refactorizaciones. |
 | **MiniMax M3.1 Flash** (vía OpenRouter) | Modelo secundario del agente, usado para tareas mecánicas y para los lotes de pruebas de integración. |
-| **OpenRouter API** | Proveedor del modelo de producto: `minimax/minimax-m3.1-flash:free`, gratuito. |
+| **OpenRouter API** | Proveedor del modelo de producto: `cohere/north-mini-code:free`, gratuito. |
 | **uv / pytest / ruff / mypy** | Entorno, suite de pruebas y puertas de calidad del backend. |
 | **npm / Vitest / Testing Library / oxlint / tsc** | Dependencias, suite de pruebas y puertas de calidad del frontend. |
 | **pdftotext** | Extracción del texto de `prueba-tecnica.pdf` (el modelo no lee PDF directamente). |

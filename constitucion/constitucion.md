@@ -73,7 +73,7 @@ Cualquier desviación de esta constitución se documenta como decisión explíci
 
 | # | Decisión | Estado | Fecha |
 |---|----------|--------|-------|
-| D-01 | Modelo principal `minimax/minimax-m3.1-flash:free` (gratuito) | Aceptada | 2026-10-21 |
+| D-01 | Modelo principal `cohere/north-mini-code:free` (gratuito) | Aceptada | 2026-10-21 |
 | D-02 | Sin streaming: respuesta JSON única con indicador de carga en el cliente | Aceptada | 2026-10-21 |
 | D-03 | Degradación a respuesta extractiva determinista si el proveedor falla (nunca a modelo de pago) | Aceptada | 2026-10-21 |
 | D-04 | Estructura con `src/` en la raíz del repositorio | Aceptada | 2026-10-21 |

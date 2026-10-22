@@ -26,7 +26,7 @@ def _consulta(indice: int) -> Consulta:
         fuentes=[{"documento": "Productos de Crédito.md", "fragmento": "Condiciones"}],
         estado=Estado.EXITOSA,
         duracion_ms=100,
-        modelo="minimax/minimax-m3.1-flash:free",
+        modelo="cohere/north-mini-code:free",
     )
 
 

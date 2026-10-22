@@ -134,7 +134,7 @@ tests/
   "estado": "Exitosa",
   "consulta_id": 12,
   "duracion_ms": 8431,
-  "modelo": "minimax/minimax-m3.1-flash:free"
+  "modelo": "cohere/north-mini-code:free"
 }
 ```
 
@@ -198,7 +198,7 @@ Variables en `.env` (con valores por defecto seguros en `config.py`):
 | Variable | Por defecto | Uso |
 |----------|-------------|-----|
 | `OPENROUTER_API_KEY` | — | Credencial del proveedor; si falta, el sistema opera en modo fallback |
-| `WALLE_MODELO` | `minimax/minimax-m3.1-flash:free` | Modelo principal (gratuito) |
+| `WALLE_MODELO` | `cohere/north-mini-code:free` | Modelo principal (gratuito) |
 | `WALLE_TIMEOUT_SEGUNDOS` | `30` | Timeout de la invocación al proveedor |
 | `WALLE_REINTENTOS` | `1` | Reintentos ante 429/5xx |
 | `WALLE_UMBRAL_RELEVANCIA` | `1.0` | Umbral mínimo de relevancia documental |

@@ -36,7 +36,7 @@ describe('Cliente HTTP de la API', () => {
       estado: 'Exitosa',
       consulta_id: 1,
       duracion_ms: 900,
-      modelo: 'minimax/minimax-m3.1-flash:free',
+      modelo: 'cohere/north-mini-code:free',
     }
     vi.mocked(fetch).mockResolvedValue(respuestaJson(cuerpo))
 
