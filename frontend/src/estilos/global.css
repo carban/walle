@@ -76,6 +76,8 @@ body {
   flex-direction: column;
   min-width: 0;
   height: 100%;
+  /* El scroll vive en los mensajes: la pagina entera nunca debe desplazarse. */
+  overflow: hidden;
 }
 
 /* Barra principal: siempre visible, aloja el control del panel lateral. */
@@ -203,7 +205,12 @@ body {
 
 .chat__mensajes {
   flex: 1;
+  /* Como elemento flex en columna, sin esto su min-height automatico le impide
+     encogerse: crece con los mensajes, desborda el chat y empuja el compositor
+     fuera del viewport en lugar de generar su propia barra de scroll. */
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 24px;
   display: flex;
   flex-direction: column;
