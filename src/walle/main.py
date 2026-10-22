@@ -164,42 +164,58 @@ def crear_aplicacion(
 
         return {"estado": "ok", "servicio": "walle-api", "version": __version__}
 
+    # El modo de un solo servicio se decide antes de declarar la raiz: en ese
+    # modo la raiz sirve la aplicacion web y no la identificacion JSON.
+    frontend_montado = (
+        configuracion.walle_servir_frontend and configuracion.walle_frontend_dir.is_dir()
+    )
+
     @app.get("/", tags=["walle"], summary="Identificacion del servicio")
-    async def raiz() -> dict[str, str]:
+    async def raiz() -> Response:
         """Identifica el servicio y señala los puntos de entrada principales."""
         from walle import __version__
 
-        return {
-            "servicio": "walle-api",
-            "version": __version__,
-            "descripcion": "API del asistente Walle para asesores comerciales.",
-            "consultar": "/api/consultar",
-            "historial": "/api/historial",
-            "salud": "/api/salud",
-            "documentacion": "/docs",
-            "frontend": "http://localhost:5173",
-        }
+        if frontend_montado:
+            # Modo de un solo servicio: la raiz es la aplicacion web.
+            return FileResponse(configuracion.walle_frontend_dir / "index.html")
+
+        return JSONResponse(
+            {
+                "servicio": "walle-api",
+                "version": __version__,
+                "descripcion": "API del asistente Walle para asesores comerciales.",
+                "consultar": "/api/consultar",
+                "historial": "/api/historial",
+                "salud": "/api/salud",
+                "documentacion": "/docs",
+                "frontend": "http://localhost:5173",
+            }
+        )
 
     app.include_router(router)
     app.include_router(router_historial)
 
+    # El frontend se monta al final: su ruta comodin debe quedar despues de las
+    # rutas de la API para no interceptarlas.
     _montar_frontend(app, configuracion)
     return app
 
 
-def _montar_frontend(app: FastAPI, settings: Settings) -> None:
+def _montar_frontend(app: FastAPI, settings: Settings) -> bool:
     """Sirve la compilacion del frontend, solo si se pide explicitamente.
 
     Por defecto la API y el frontend son servicios separados: el puerto 8000 expone
     la API y el 5173 el chat. El modo de un solo servicio es opt-in.
+
+    Devuelve `True` si el frontend quedo montado.
     """
     if not settings.walle_servir_frontend:
-        return
+        return False
 
     directorio = settings.walle_frontend_dir
     if not directorio.is_dir():
         logger.warning("frontend_no_encontrado ruta=%s", directorio)
-        return
+        return False
 
     if (directorio / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=directorio / "assets"), name="assets")
@@ -211,6 +227,8 @@ def _montar_frontend(app: FastAPI, settings: Settings) -> None:
             # Las rutas de la API que no existen deben seguir siendo 404.
             raise HTTPException(status_code=404, detail="Recurso no encontrado.")
         return FileResponse(directorio / "index.html")
+
+    return True
 
 
 app = crear_aplicacion()

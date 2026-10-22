@@ -57,9 +57,43 @@ def test_el_modo_de_un_solo_servicio_es_opt_in(tmp_path: Path) -> None:
     assert "Walle" in respuesta.text
 
 
+def test_en_modo_de_un_solo_servicio_la_raiz_sirve_la_aplicacion(tmp_path: Path) -> None:
+    """La raiz debe abrir el chat, no la identificacion JSON de la API."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<!doctype html><title>Walle</title>", encoding="utf-8")
+
+    configuracion = _configuracion(tmp_path, walle_servir_frontend=True, walle_frontend_dir=dist)
+
+    with TestClient(crear_aplicacion(configuracion)) as cliente:
+        respuesta = cliente.get("/")
+
+    assert respuesta.status_code == 200
+    assert respuesta.headers.get("content-type", "").startswith("text/html")
+    assert "Walle" in respuesta.text
+
+
 def test_las_rutas_de_api_siguen_siendo_de_la_api(tmp_path: Path) -> None:
     with TestClient(crear_aplicacion(_configuracion(tmp_path))) as cliente:
         respuesta = cliente.get("/api/ruta-inexistente")
 
     assert respuesta.status_code == 404
     assert respuesta.headers.get("content-type", "").startswith("application/json")
+
+
+def test_en_modo_de_un_solo_servicio_la_api_sigue_respondiendo(tmp_path: Path) -> None:
+    """Servir el frontend no debe secuestrar las rutas de la API."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<!doctype html><title>Walle</title>", encoding="utf-8")
+
+    configuracion = _configuracion(tmp_path, walle_servir_frontend=True, walle_frontend_dir=dist)
+
+    with TestClient(crear_aplicacion(configuracion)) as cliente:
+        salud = cliente.get("/api/salud")
+        inexistente = cliente.get("/api/ruta-inexistente")
+
+    assert salud.status_code == 200
+    assert salud.json()["estado"] == "ok"
+    assert inexistente.status_code == 404
+    assert inexistente.headers.get("content-type", "").startswith("application/json")
