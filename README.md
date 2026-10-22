@@ -122,7 +122,14 @@ Todo se configura por variables de entorno; el archivo `.env` (ignorado por git)
 | `WALLE_DB_PATH` | `storage/walle.db` | Archivo SQLite (ignorado por git) |
 | `WALLE_LOG_LEVEL` | `INFO` | Nivel de traza (JSON por línea) |
 | `WALLE_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Orígenes permitidos en desarrollo |
-| `VITE_API_URL` | `http://127.0.0.1:8000` | URL de la API vista por el navegador. **Vacía ⇒ rutas relativas** (modo de un solo servicio) |
+| `WALLE_SERVIR_FRONTEND` | `false` | Si es `true`, la API sirve además el frontend compilado (modo de un solo servicio, opt-in) |
+| `WALLE_FRONTEND_DIR` | `frontend/dist` | Carpeta de la compilación del frontend |
+
+Del lado del frontend (`frontend/.env`, variables `VITE_*`):
+
+| Variable | Por defecto | Descripción |
+|----------|-------------|-------------|
+| `VITE_API_URL` | vacío | Vacío ⇒ rutas relativas y **proxy de Vite** (sin peticiones entre orígenes). Con valor ⇒ el navegador llama directo a la API (el origen debe estar en `WALLE_CORS_ORIGINS`) |
 
 ```bash
 cp .env.example .env   # y completar OPENROUTER_API_KEY
@@ -130,31 +137,53 @@ cp .env.example .env   # y completar OPENROUTER_API_KEY
 
 ## 6. Ejecución
 
-### 6.1 Dos servicios (desarrollo)
+Los dos servicios están **separados**: el puerto 8000 expone la API y el 5173 el chat.
+
+### 6.1 API (puerto 8000)
 
 ```bash
-# Terminal 1 — API
 uv run uvicorn walle.main:app --reload --port 8000
+```
 
-# Terminal 2 — frontend
+Al abrir <http://127.0.0.1:8000> se ve la identificación del servicio en JSON; la documentación
+interactiva de la API está en <http://127.0.0.1:8000/docs>.
+
+```json
+{
+  "servicio": "walle-api",
+  "version": "0.1.0",
+  "consultar": "/api/consultar",
+  "historial": "/api/historial",
+  "salud": "/api/salud",
+  "documentacion": "/docs",
+  "frontend": "http://localhost:5173"
+}
+```
+
+### 6.2 Frontend (puerto 5173)
+
+```bash
 cd frontend && npm run dev
 ```
 
-La interfaz queda en <http://localhost:5173> y la API en <http://127.0.0.1:8000>.
-En desarrollo **no hay errores de CORS** por dos razones: Vite hace de proxy (`/api` → `:8000`), de
-modo que el navegador siempre llama a su propio origen, y la API mantiene una allowlist explícita de
-orígenes (`localhost:5173` y `127.0.0.1:5173`, que el navegador trata como distintos).
+La interfaz queda en <http://localhost:5173>. **No hay errores de CORS** porque el cliente usa rutas
+relativas y el proxy de Vite (`/api` → `127.0.0.1:8000`) reenvía las peticiones: el navegador nunca
+sale de su propio origen. Además la API mantiene una allowlist explícita de orígenes
+(`localhost:5173` y `127.0.0.1:5173`, que el navegador trata como distintos) como red de seguridad.
 
-### 6.2 Un solo servicio (producción local)
+### 6.3 Modo de un solo servicio (opt-in)
+
+Si se quiere servir el chat desde la propia API:
 
 ```bash
-cd frontend && npm run build          # genera frontend/dist
-uv run uvicorn walle.main:app --port 8000
+cd frontend && npm run build                      # genera frontend/dist
+WALLE_SERVIR_FRONTEND=true uv run uvicorn walle.main:app --port 8000
 ```
 
-La API sirve la compilación del frontend: todo en <http://127.0.0.1:8000>, mismo origen y sin CORS.
+Con `WALLE_SERVIR_FRONTEND=true` la API sirve `frontend/dist` como aplicación de una sola página.
+Por defecto está **desactivado**, de modo que 8000 es siempre la API y 5173 el chat.
 
-### 6.3 Ejemplo de uso
+### 6.4 Ejemplo de uso
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/consultar \

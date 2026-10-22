@@ -233,7 +233,11 @@ agente (capas, convenciones, prohibiciones de seguridad, comandos de verificaci�
   esquema.
 - **La seguridad**: detección de patrones sensibles, redacción, control de acceso y secretos.
 - **La infraestructura**: despliegue, configuración, observabilidad y backups.
-- **El contrato**: esquema de la API, tipos del cliente y CORS.
+- **La frontera entre servicios**: el puerto 8000 expone **solo** la API (JSON y Swagger en `/docs`)
+  y el 5173 el chat. El frontend llama a la API mediante rutas relativas y el proxy de Vite, de modo
+  que en el navegador no hay peticiones entre orígenes; la allowlist CORS de la API queda como red de
+  seguridad. Servir el frontend desde la propia API existe, pero es **opt-in**
+  (`WALLE_SERVIR_FRONTEND=true`).
 
 ### ¿Qué responsabilidades delegaría a IA?
 

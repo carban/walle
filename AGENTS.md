@@ -67,6 +67,7 @@ La **trazabilidad es obligatoria**: todo código nuevo debe poder rastrearse has
 - Docstrings en español, orientadas al "por qué", no al "qué".
 - Comentarios en el código: explican el **por qué**, no repitan el código. Prefiere el código legible a los comentarios.
 - Frontend en `frontend/` con React + npm (`npm ci`, `npm run dev`, `npm run build`). No introduzcas otro gestor de paquetes.
+- **Servicios separados**: la API vive en `:8000` (solo JSON y `/docs`) y el chat en `:5173`. No montes el frontend en la API salvo que se pida explícitamente (`WALLE_SERVIR_FRONTEND=true`). El cliente del frontend usa rutas relativas y el proxy de Vite.
 
 ### 4.5 Commits
 

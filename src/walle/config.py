@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     walle_db_path: Path = RAIZ_PROYECTO / "storage" / "walle.db"
     walle_log_level: str = "INFO"
     walle_cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    walle_servir_frontend: bool = False
+    walle_frontend_dir: Path = RAIZ_PROYECTO / "frontend" / "dist"
 
     @property
     def origins_permitidos(self) -> list[str]:

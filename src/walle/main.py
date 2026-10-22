@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -150,20 +149,45 @@ def crear_aplicacion(
             },
         )
 
+    @app.get("/", tags=["walle"], summary="Identificacion del servicio")
+    async def raiz() -> dict[str, str]:
+        """Identifica el servicio y señala los puntos de entrada principales."""
+        from walle import __version__
+
+        return {
+            "servicio": "walle-api",
+            "version": __version__,
+            "descripcion": "API del asistente Walle para asesores comerciales.",
+            "consultar": "/api/consultar",
+            "historial": "/api/historial",
+            "salud": "/api/salud",
+            "documentacion": "/docs",
+            "frontend": "http://localhost:5173",
+        }
+
     app.include_router(router)
     app.include_router(router_historial)
 
-    _montar_frontend(app)
+    _montar_frontend(app, configuracion)
     return app
 
 
-def _montar_frontend(app: FastAPI) -> None:
-    """Sirve la compilacion del frontend, si existe, como aplicacion de una sola pagina."""
-    directorio = Path(__file__).resolve().parents[2] / "frontend" / "dist"
-    if not directorio.is_dir():
+def _montar_frontend(app: FastAPI, settings: Settings) -> None:
+    """Sirve la compilacion del frontend, solo si se pide explicitamente.
+
+    Por defecto la API y el frontend son servicios separados: el puerto 8000 expone
+    la API y el 5173 el chat. El modo de un solo servicio es opt-in.
+    """
+    if not settings.walle_servir_frontend:
         return
 
-    app.mount("/assets", StaticFiles(directory=directorio / "assets"), name="assets")
+    directorio = settings.walle_frontend_dir
+    if not directorio.is_dir():
+        logger.warning("frontend_no_encontrado ruta=%s", directorio)
+        return
+
+    if (directorio / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=directorio / "assets"), name="assets")
 
     @app.get("/{ruta:path}", include_in_schema=False)
     async def aplicacion(ruta: str) -> FileResponse:
