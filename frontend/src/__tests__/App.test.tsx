@@ -167,16 +167,45 @@ describe('Interfaz de consultas', () => {
     expect(await screen.findByText('El monto máximo es $50.000.000.')).toBeInTheDocument()
   })
 
-  it('borra una consulta del historial', async () => {
+  it('borra una consulta del historial tras confirmar', async () => {
     vi.mocked(obtenerHistorial).mockResolvedValue(historial)
     const usuario = userEvent.setup()
     render(<App />)
 
     await usuario.click(await screen.findByRole('button', { name: /borrar la consulta/i }))
+    await usuario.click(screen.getByRole('button', { name: /confirmar el borrado/i }))
 
     await waitFor(() => {
       expect(borrarConsulta).toHaveBeenCalledWith(1)
     })
+  })
+
+  it('el borrado se puede cancelar', async () => {
+    vi.mocked(obtenerHistorial).mockResolvedValue(historial)
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    await usuario.click(await screen.findByRole('button', { name: /borrar la consulta/i }))
+    await usuario.click(screen.getByRole('button', { name: /cancelar el borrado/i }))
+
+    expect(borrarConsulta).not.toHaveBeenCalled()
+    expect(screen.getByText(historial[0].pregunta)).toBeInTheDocument()
+  })
+
+  it('cargar dos veces la misma entrada del historial no rompe el chat', async () => {
+    vi.mocked(obtenerHistorial).mockResolvedValue(historial)
+    const usuario = userEvent.setup()
+    render(<App />)
+
+    const entrada = await screen.findByText(historial[0].pregunta)
+    await usuario.click(entrada)
+    await usuario.click(entrada)
+
+    await waitFor(() => {
+      expect(obtenerConsulta).toHaveBeenCalledTimes(2)
+    })
+    // Ambas cargas se muestran y no se duplican claves de React.
+    expect(await screen.findAllByText('El monto máximo es $50.000.000.')).toHaveLength(2)
   })
 
   it('la nueva conversación limpia el chat y conserva el historial', async () => {

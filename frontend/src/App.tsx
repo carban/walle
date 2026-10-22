@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { borrarConsulta, consultar, obtenerConsulta, obtenerHistorial } from './api/cliente'
 import { Aviso } from './componentes/Aviso'
 import { Chat } from './componentes/Chat'
@@ -12,6 +12,14 @@ export default function App() {
   const [enCurso, setEnCurso] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [panelVisible, setPanelVisible] = useState(true)
+  // Contador para generar claves unicas: la misma entrada del historial puede
+  // cargarse varias veces en el chat y React exige claves distintas.
+  const contador = useRef(0)
+
+  function nuevoId(prefijo: string): string {
+    contador.current += 1
+    return `${prefijo}-${contador.current}-${Date.now()}`
+  }
 
   const refrescarHistorial = useCallback(async () => {
     try {
@@ -28,7 +36,7 @@ export default function App() {
   }, [refrescarHistorial])
 
   async function enviar(pregunta: string) {
-    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const id = nuevoId('consulta')
     setIntercambios((previos) => [
       ...previos,
       { id, consultaId: null, pregunta, respuesta: null, enCurso: true },
@@ -65,7 +73,7 @@ export default function App() {
       setIntercambios((previos) => [
         ...previos,
         {
-          id: `historial-${consulta.id}`,
+          id: nuevoId('historial'),
           consultaId: consulta.id,
           pregunta: consulta.pregunta,
           respuesta: {
