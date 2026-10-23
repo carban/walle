@@ -12,7 +12,7 @@
 | Herramienta | Uso en el proyecto |
 |-------------|--------------------|
 | **OpenCode** (agente de terminal) | Orquestación del desarrollo: lectura de la prueba técnica, redacción de la constitución, especificaciones, planes, tareas, código, pruebas y documentación. |
-| **Claude Sonnet 4.5** | Modelo principal del agente para diseño de especificaciones, implementación del backend y refactorizaciones. |
+| **DeepSeek V4.1** | Modelo principal del agente para diseño de especificaciones, implementación del backend y refactorizaciones. |
 | **MiniMax M3.1 Flash** (vía OpenRouter) | Modelo secundario del agente, usado para tareas mecánicas y para los lotes de pruebas de integración. |
 | **OpenRouter API** | Proveedor del modelo de producto: `cohere/north-mini-code:free`, gratuito. |
 | **uv / pytest / ruff / mypy** | Entorno, suite de pruebas y puertas de calidad del backend. |
@@ -24,8 +24,7 @@
 - **Documentación de diseño**: primer borrador de `constitucion/constitucion.md`, de las tres
   especificaciones (contexto, objetivo, alcance, RF, RNF, riesgos y criterios Gherkin), de los planes
   técnicos y de las listas de tareas.
-- **Implementación**: el grueso del código de `src/walle/` (10 módulos) y de `frontend/src/`
-  (13 archivos: componentes, cliente HTTP, estilos y pruebas), siempre a partir de una
+- **Implementación**: el grueso del código de `src/walle/` y de `frontend/src/`, siempre a partir de una
   especificación aprobada.
 - **Pruebas**: los casos unitarios, de integración y de contrato, y la suite de Vitest.
 - **Repetición mecánica**: refactorizados, ajustes de estilo, correcciones de tipado y de lint, y
@@ -47,14 +46,11 @@
   OpenRouter, comprobación de los tres estados de respuesta, de la persistencia y del CORS.
 - **Juicio de negocio**: decidir que "sin información suficiente" y "Bloqueada por seguridad" son
   estados normales y no errores, y que el documento restringido no se carga nunca.
-- **Corrección de desviaciones**: cuando la IA propuso fragmentos de fuentes ilegibles ("… >
-  Condiciones > …"), se corrigió la jerarquía de encabezados y el criterio de secciones relevantes.
 
 ### 4. Qué sugerencias rechazó de la IA
 
 | Propuesta de la IA | Decisión | Motivo |
 |--------------------|----------|--------|
-| Añadir documentos de ejemplo a `Data/` (FAQ, tarifas, glosario) | **Rechazada** | El usuario decidió no ampliar el corpus: el conjunto entregado ya es el material de la prueba. |
 | Rotar la clave de OpenRouter expuesta en `.env` | **Rechazada por ahora** | Es una recomendación válida de seguridad, pero se pospuso; `.env` está ignorado por git y la clave no se versionó. |
 | Sustituir SQLite por una base cliente-servidor | **Rechazada** | El despliegue es local y monousuario; SQLite cumple sin dependencias ni operación. |
 | Streaming SSE de las respuestas | **Rechazada** | El usuario decidió esperar con un indicador de carga; el contrato se mantiene como respuesta JSON única. |
@@ -65,7 +61,7 @@
 
 ### 5. Cómo validó las respuestas de la IA
 
-1. ** specifications primero**: ninguna implementación se escribió sin requisito, criterio de
+1. **specifications primero**: ninguna implementación se escribió sin requisito, criterio de
    aceptación y tarea asociados (trazabilidad en la matriz §8 de cada especificación).
 2. **TDD**: cada comportamiento se fijó primero con una prueba que fallaba; las suites quedaron en
    verde con `pytest` (120 pruebas) y `vitest` (11 pruebas).
@@ -73,9 +69,7 @@
 4. **Pruebas de contrato reales**: `uv run pytest -m integration` consulta OpenRouter de verdad y
    comprueba que la respuesta menciona la cifra correcta y trae su fuente.
 5. **Revisión manual del comportamiento**: se ejecutó la API y se verificó, con el modelo real, que
-   la consulta del monto máximo devuelve `$50.000.000` con la fuente correcta, que una pregunta fuera
-   del corpus devuelve el mensaje canónico **sin** llamar al modelo (1 ms) y que un intento de
-   prompt injection queda bloqueado sin filtrar el token.
+   por ejemplo la consulta del monto máximo devuelve `$50.000.000` con la fuente correcta, que una pregunta fuera del corpus devuelve el mensaje canónico **sin** llamar al modelo (1 ms) y que un intento de prompt injection queda bloqueado sin filtrar el token.
 6. **Revisión del frontend en el navegador**: recorrido de consulta, fuentes, panel lateral, borrado,
    nueva conversación y error de red con la API detenida.
 
@@ -86,7 +80,7 @@
 ### ¿Qué modelo utilizaría y por qué?
 
 En producción usaría un modelo **comercial pequeño y rápido** (por ejemplo, un flash de proveedor
-con precio por token bajo) en lugar del gratuito, por tres razones: SLA y cuota garantizada, mayor
+con precio por token bajo, por ejemplo: Gemma 4 Flash) en lugar del gratuito, por tres razones: SLA y cuota garantizada, mayor
 consistencia en formato (JSON y citas) y latencia predecible. Mantendría el **modelo gratuito como
 modo degradado explícito**, no como failover automático: si el presupuesto lo permite, el sistema
 pasa al comercial; si no, degrada a la respuesta extractiva local.
@@ -104,12 +98,10 @@ Por eso el diseño permite cambiar de proveedor con una variable de entorno.
   de la conversación.
 - **Modelo gratuito por defecto** y **sin failover de pago automático**.
 - **Salida corta**: el prompt limita la respuesta a 120 palabras y `max_tokens` a 700.
-- **Medición**: se registra la duración y el modelo de cada consulta; con el volumen se puede decidir
-  qué preguntas son candidatas a caché.
 
 ### ¿Cómo mitigaría Prompt Injection?
 
-Con un modelo de defensa en capas, ninguna por sí sola suficiente:
+Existen muchas metodologías para mitigarlo, con un modelo de defensa en capas, ninguna por sí sola suficiente:
 
 1. **Separación de contextos**: el corpus documental y la pregunta del usuario se tratan como datos,
    nunca como instrucciones. El prompt de sistema declara que las instrucciones dentro de los
@@ -162,7 +154,7 @@ patrones nuevos.
 
 En cuatro etapas, cada una justificada por una limitación observada:
 
-1. **Hoy**: recuperación léxica con Okapi BM25 (índice por documento y por sección), sinónimos del
+1. **Proceso Inicial**: recuperación léxica con Okapi BM25 (índice por documento y por sección), sinónimos del
    dominio y documento completo enviado al modelo. Suficiente porque el corpus es pequeño y el modelo
    puede leerlo entero.
 2. **Híbrido**: añadir embeddings (locales, para no enviar el corpus a un tercero) y combinar la
@@ -186,6 +178,8 @@ siguiendo el flujo definido en `AGENTS.md`: especificación → plan → tareas 
 verificación. El repositorio incluye `AGENTS.md` con las reglas que gobiernan el trabajo de cualquier
 agente (capas, convenciones, prohibiciones de seguridad, comandos de verificación).
 
+Me gustaría aclarar que para este proyecto se hizo uso de OpenCode una herramienta poderosa pero que sigue estando por debajo de herramientas como Claude Code o Antigravity que son más eficientes.
+
 ### ¿Cómo fueron instruidos?
 
 - Con la **constitución** como marco de referencia: seguridad por defecto, calidad, TDD, uso
@@ -203,7 +197,7 @@ agente (capas, convenciones, prohibiciones de seguridad, comandos de verificaci�
 - Borradores de constitución, especificaciones, planes y listas de tareas.
 - Implementación de los módulos del backend y del frontend.
 - Escritura de las suites de pruebas (unitarias, de integración, de contrato y de componente).
-- Refactorizados, correcciones de lint y tipado, y actualización de la documentación.
+- Algunos refactorizados, correcciones de lint y tipado, y actualización de la documentación.
 
 ### ¿Qué tareas supervisó manualmente?
 
@@ -213,6 +207,7 @@ agente (capas, convenciones, prohibiciones de seguridad, comandos de verificaci�
   correcta y de que el modo degradado funciona.
 - La revisión del diff completo antes de cada commit y la ejecución manual de la aplicación.
 - La validación del frontend en el navegador.
+- Algunos refactorizados que se podían solucionar de forma más rápida por el desarrollador.
 
 ### ¿Qué decisiones no permitió tomar a la IA?
 
@@ -222,7 +217,6 @@ agente (capas, convenciones, prohibiciones de seguridad, comandos de verificaci�
   `Criptomoneda.md` se incorporaron con autorización y el documento restringido quedó fuera.
 - El modo de entrega (respuesta JSON única, sin streaming) y la decisión de no añadir dependencias.
 - La política de coste: nunca failover automático a un modelo de pago.
-- Qué se documenta y cómo se responde el cuestionario de evaluación.
 
 ---
 
@@ -297,8 +291,7 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 4. **Degradación controlada**: cuando el proveedor va lento o sin cuota, el fallback extractivo
    responde en milisegundos y con la misma fuente.
 5. **Conexiones reutilizadas** al proveedor (pool de `httpx`) y timeouts escalonados.
-6. **Límite de concurrencia** con una cola de semáforos: ante picos, se encolan consultas en
-   lugar de agotar la cuota.
+6. **Límite de concurrencia**: Control de requests por minuto y throughput.
 
 ### ¿Qué podría cachear?
 
@@ -315,7 +308,7 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 - **Latencia**: p50, p95 y p99 por etapa (validación, guardrails, recuperación, modelo, persistencia).
 - **Tasa de degradación**: porcentaje de consultas querespondieron con el fallback local; es la
   señal temprana de que el proveedor se está degradando.
-- **Errores del proveedor**: 429 y 5xx por minuto; cuota restante.
+- **Errores del proveedor**: Errores o Warnings en los logs.
 - **Estado de las respuestas**: proporción de `Exitosa` / `Sin información suficiente` /
   `Bloqueada por seguridad`; un salto en la segunda indica deriva del corpus o preguntas nuevas
   repetidas.
@@ -362,14 +355,12 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 
 ### ¿Qué ventajas tiene para este escenario?
 
-- **Simplicidad operativa**: el repositorio completo son cuatro archivos.
+- **Simplicidad operativa**: el repositorio completo son pocos archivos.
 - **Portabilidad**: el mismo código funciona en Linux, macOS y Windows, y la base se puede copiar o
   respaldar copiando un archivo.
 - **Privacidad por defecto**: la base vive fuera del árbol versionado (`.gitignore`), con lo que la
   información de los asesores no llega al repositorio.
 - **Coste cero de infraestructura**.
-- **Consultas históricas**：el índice por fecha permite listar el historial en orden inverso sin
-  recorrer toda la tabla.
 
 ---
 
