@@ -11,9 +11,8 @@
 
 | Herramienta | Uso en el proyecto |
 |-------------|--------------------|
-| **OpenCode** (agente de terminal) | Orquestación del desarrollo: lectura de la prueba técnica, redacción de la constitución, especificaciones, planes, tareas, código, pruebas y documentación. |
+| **OpenCode** (agente de terminal) | Desarrollo asistido: lectura de la prueba técnica, redacción de la constitución, especificaciones, planes, tareas, código, pruebas y documentación. |
 | **DeepSeek V4.1** | Modelo principal del agente para diseño de especificaciones, implementación del backend y refactorizaciones. |
-| **MiniMax M3.1 Flash** (vía OpenRouter) | Modelo secundario del agente, usado para tareas mecánicas y para los lotes de pruebas de integración. |
 | **OpenRouter API** | Proveedor del modelo de producto: `cohere/north-mini-code:free`, gratuito. |
 | **uv / pytest / ruff / mypy** | Entorno, suite de pruebas y puertas de calidad del backend. |
 | **npm / Vitest / Testing Library / oxlint / tsc** | Dependencias, suite de pruebas y puertas de calidad del frontend. |
@@ -28,7 +27,7 @@
   especificación aprobada.
 - **Pruebas**: los casos unitarios, de integración y de contrato, y la suite de Vitest.
 - **Repetición mecánica**: refactorizados, ajustes de estilo, correcciones de tipado y de lint, y
-  redacción del README y de este cuestionario.
+  borradores del README y de este cuestionario, revisados por mí.
 - **Investigación**: verificación de qué modelos gratuitos existían en OpenRouter y de su
   comportamiento real (la primera opción, `gemma-4-31b-it:free`, devolvió `429` y se descartó tras
   medirlo).
@@ -51,25 +50,27 @@
 
 | Propuesta de la IA | Decisión | Motivo |
 |--------------------|----------|--------|
-| Rotar la clave de OpenRouter expuesta en `.env` | **Rechazada por ahora** | Es una recomendación válida de seguridad, pero se pospuso; `.env` está ignorado por git y la clave no se versionó. |
+| Rotar la clave de OpenRouter alojada en `.env` | **Aplazada hasta el despliegue** | Es una recomendación válida de seguridad; `.env` está ignorado por git y la clave no se versionó, pero conviene rotarla antes de publicar. |
 | Sustituir SQLite por una base cliente-servidor | **Rechazada** | El despliegue es local y monousuario; SQLite cumple sin dependencias ni operación. |
-| Streaming SSE de las respuestas | **Rechazada** | El usuario decidió esperar con un indicador de carga; el contrato se mantiene como respuesta JSON única. |
-| Fallback automático a un modelo de pago si el gratuito falla | **Rechazada** | Contradice el principio de costo cero y el control explícito del gasto; la degradación es local y determinista. |
+| Streaming SSE de las respuestas | **Rechazada** | Se decidió esperar con un indicador de carga; el contrato se mantiene como respuesta JSON única. |
+| Fallback automático a un modelo de pago si el gratuito falla | **Rechazada** | Contradice el principio de coste cero y el control explícito del gasto; la degradación es local y determinista. |
 | Persistir la conversación en `localStorage` | **Rechazada** | Duplicaría datos en el navegador del asesor, fuera del control de los guardrails; la fuente de verdad es SQLite. |
 | Embeddings y base vectorial para el corpus | **Rechazada** | Los documentos son pequeños: se pasa el documento completo; el embedding es una mejora futura. |
 | Paginación del historial desde el inicio | **Aplazada** | Sin volumen que lo justifique; se documenta como mejora futura. |
 
 ### 5. Cómo validó las respuestas de la IA
 
-1. **specifications primero**: ninguna implementación se escribió sin requisito, criterio de
+1. **Primero la especificación**: ninguna implementación se escribió sin requisito, criterio de
    aceptación y tarea asociados (trazabilidad en la matriz §8 de cada especificación).
 2. **TDD**: cada comportamiento se fijó primero con una prueba que fallaba; las suites quedaron en
-   verde con `pytest` (120 pruebas) y `vitest` (11 pruebas).
+   verde con `pytest` (más de 160 pruebas) y `vitest` (más de 50 casos, incluidos los e2e).
 3. **Puertas automáticas**: `ruff`, `mypy --strict`, `oxlint` y `tsc --noEmit` sin observaciones.
 4. **Pruebas de contrato reales**: `uv run pytest -m integration` consulta OpenRouter de verdad y
    comprueba que la respuesta menciona la cifra correcta y trae su fuente.
 5. **Revisión manual del comportamiento**: se ejecutó la API y se verificó, con el modelo real, que
-   por ejemplo la consulta del monto máximo devuelve `$50.000.000` con la fuente correcta, que una pregunta fuera del corpus devuelve el mensaje canónico **sin** llamar al modelo (1 ms) y que un intento de prompt injection queda bloqueado sin filtrar el token.
+   por ejemplo la consulta del monto máximo devuelve `$50.000.000` con la fuente correcta, que una
+   pregunta fuera del corpus devuelve el mensaje canónico **sin** llamar al modelo y que un intento de
+   prompt injection queda bloqueado sin filtrar el token.
 6. **Revisión del frontend en el navegador**: recorrido de consulta, fuentes, panel lateral, borrado,
    nueva conversación y error de red con la API detenida.
 
@@ -79,13 +80,14 @@
 
 ### ¿Qué modelo utilizaría y por qué?
 
-En producción usaría un modelo **comercial pequeño y rápido** (por ejemplo, un flash de proveedor
-con precio por token bajo, por ejemplo: Gemma 4 Flash) en lugar del gratuito, por tres razones: SLA y cuota garantizada, mayor
-consistencia en formato (JSON y citas) y latencia predecible. Mantendría el **modelo gratuito como
-modo degradado explícito**, no como failover automático: si el presupuesto lo permite, el sistema
-pasa al comercial; si no, degrada a la respuesta extractiva local.
+En producción usaría un modelo **comercial pequeño y rápido**, con precio por token bajo (por ejemplo,
+un Gemini 3.5 Flash), en lugar del gratuito, por tres razones: SLA y cuota garantizada, mayor consistencia
+en formato (JSON y citas) y latencia predecible. Mantendría el **modelo gratuito como modo de bajo
+coste seleccionable**, no como failover automático: el paso al comercial sería una decisión de
+configuración y presupuesto, y si el comercial falla, el sistema degrada a la respuesta extractiva
+local.
 
-El modelo no es la pieza crítica: la calidad depende del corpus y de los guardrails, no del modelo.
+El modelo no es la pieza que más pesa: la calidad depende sobre todo del corpus y de los guardrails.
 Por eso el diseño permite cambiar de proveedor con una variable de entorno.
 
 ### ¿Cómo optimizaría costos?
@@ -93,22 +95,23 @@ Por eso el diseño permite cambiar de proveedor con una variable de entorno.
 - **Caché de corpus**: los documentos se cargan una vez en memoria (ya implementado); no se releen
   por consulta.
 - **Filtrado antes del modelo**: si ningún documento alcanza el umbral de relevancia, **no se llama al
-  modelo** (ahorra la llamada completa y responde en ~1 ms).
+  modelo** (ahorra la llamada completa y responde en milisegundos).
 - **Contexto mínimo**: se envía el documento relevante completo, no el corpus entero, y sin historial
   de la conversación.
 - **Modelo gratuito por defecto** y **sin failover de pago automático**.
-- **Salida corta**: el prompt limita la respuesta a 120 palabras y `max_tokens` a 700.
+- **Salida corta**: el prompt limita la respuesta a 120 palabras y `max_tokens` a 1200 (los modelos
+  de razonamiento gastan parte del presupuesto en deliberar).
 
 ### ¿Cómo mitigaría Prompt Injection?
 
-Existen muchas metodologías para mitigarlo, con un modelo de defensa en capas, ninguna por sí sola suficiente:
+Lo mitigaría con defensa en capas; ninguna capa basta por sí sola:
 
 1. **Separación de contextos**: el corpus documental y la pregunta del usuario se tratan como datos,
    nunca como instrucciones. El prompt de sistema declara que las instrucciones dentro de los
    documentos o de la pregunta deben ignorarse.
 2. **Control de acceso al corpus (la capa más importante)**: el archivo restringido no se carga; por
-   tanto, sus instrucciones **nunca llegan al modelo**. La mayoría de los ataques de prompt injection
-   Explotan contenido que el modelo puede ver.
+   tanto, sus instrucciones **nunca llegan al modelo**. Muchos ataques de prompt injection
+   explotan contenido que el modelo puede ver.
 3. **Detección previa de la entrada**: patrones de instrucciones adversas y de solicitud de
    credenciales cortan la consulta antes de invocar al modelo (estado `Bloqueada por seguridad`).
 4. **Validación de la salida**: la respuesta se inspecciona contra los marcadores sensibles y, si
@@ -137,6 +140,9 @@ patrones nuevos.
 
 ### ¿Cómo monitorearía calidad?
 
+En producción lo acompañaría de métricas y trazas (OpenTelemetry) exportadas a un APM o a
+Prometheus/Grafana.
+
 - **Métricas de producto**: tasa de `Exitosa` / `Sin información suficiente` / `Bloqueada por
   seguridad`; la tasa de insuficiencia es la señal más directa de cobertura del corpus.
 - **Calidad de la respuesta**: un conjunto de preguntas con respuesta esperada y un juez automático
@@ -147,18 +153,20 @@ patrones nuevos.
   duración de la escritura en base de datos.
 - **Seguridad**: consultas bloqueadas, salidas descartadas por marcador sensible y cualquier coincidencia
   del escáner de secretos sobre logs y base de datos.
-- **Alertas**: caída del proveedor (aumento de degradaciones), aumento Brusco de "sin información
+- **Alertas**: caída del proveedor (aumento de degradaciones), aumento brusco de "sin información
   suficiente" (deriva del corpus) y cualquier salida marcada como sensible.
 
 ### ¿Cómo evolucionaría la solución hacia RAG?
 
-En cuatro etapas, cada una justificada por una limitación observada:
+El camino tiene cuatro etapas: la primera ya está implementada y las demás responden a limitaciones
+observadas:
 
-1. **Proceso Inicial**: recuperación léxica con Okapi BM25 (índice por documento y por sección), sinónimos del
-   dominio y documento completo enviado al modelo. Suficiente porque el corpus es pequeño y el modelo
-   puede leerlo entero.
+1. **Punto de partida (ya implementado)**: recuperación léxica con Okapi BM25 (índice por documento y
+   por sección), sinónimos del dominio y documento completo enviado al modelo. Suficiente porque el
+   corpus es pequeño y el modelo puede leerlo entero.
 2. **Híbrido**: añadir embeddings (locales, para no enviar el corpus a un tercero) y combinar la
-   puntuación semántica con la léxica. Resuelve la paráfrasis distante.
+   puntuación semántica con la léxica. Resuelve las paráfrasis que la coincidencia de términos no
+   captura.
 3. **Troceado selectivo**: solo cuando los documentos crezcan; trocear por sección y recuperar los
    fragmentos más relevantes, manteniendo la cita de documento + sección.
 4. **Reranking y memoria**: un reranker ligero sobre los candidatos y un registro de las consultas
@@ -173,12 +181,14 @@ del índice: el RAG cambia lo que se recupera, nunca lo que se puede revelar.
 
 ### ¿Utilizó agentes de desarrollo?
 
-Sí. El trabajo se hizo con un agente de IA (OpenCode) que planificó, implementó, probó y documentó,
-siguiendo el flujo definido en `AGENTS.md`: especificación → plan → tareas → implementación con TDD →
-verificación. El repositorio incluye `AGENTS.md` con las reglas que gobiernan el trabajo de cualquier
-agente (capas, convenciones, prohibiciones de seguridad, comandos de verificación).
+Sí. Usé OpenCode como asistente durante todo el ciclo (planificación, implementación, pruebas y
+documentación), pero la dirección y la validación fueron mías, siguiendo el flujo definido en
+`AGENTS.md`: especificación → plan → tareas → implementación con TDD → verificación. El repositorio
+incluye `AGENTS.md` con las reglas que gobiernan el trabajo de cualquier agente (capas, convenciones,
+prohibiciones de seguridad, comandos de verificación).
 
-Me gustaría aclarar que para este proyecto se hizo uso de OpenCode una herramienta poderosa pero que sigue estando por debajo de herramientas como Claude Code o Antigravity que son más eficientes.
+OpenCode cubrió el alcance de este proyecto; en un equipo más grande valoraría otras herramientas,
+pero para este trabajo fue suficiente.
 
 ### ¿Cómo fueron instruidos?
 
@@ -194,25 +204,32 @@ Me gustaría aclarar que para este proyecto se hizo uso de OpenCode una herramie
 
 ### ¿Qué tareas delegó?
 
-- Borradores de constitución, especificaciones, planes y listas de tareas.
-- Implementación de los módulos del backend y del frontend.
-- Escritura de las suites de pruebas (unitarias, de integración, de contrato y de componente).
-- Algunos refactorizados, correcciones de lint y tipado, y actualización de la documentación.
+Delegué las tareas que podían expresarse como un requisito verificable y revisarse después:
+
+- Los borradores de constitución, especificaciones, planes y listas de tareas, que luego corregí.
+- La implementación de los módulos del backend y del frontend, siempre contra una especificación
+  aprobada.
+- Las suites de pruebas (unitarias, de integración, de contrato y de componente), escritas antes del
+  código.
+- El trabajo mecánico: refactorizados, lint, tipado y actualización de la documentación.
 
 ### ¿Qué tareas supervisó manualmente?
 
+El criterio fue supervisar personalmente todo lo que tocara alcance, seguridad, contrato o datos:
+
 - La definición del alcance y de los criterios de aceptación.
-- Todo el diseño de seguridad: allowlist, guardrails y reglas de persistencia.
-- La integración con el proveedor real: elección del modelo, verificación de que la respuesta es
-  correcta y de que el modo degradado funciona.
-- La revisión del diff completo antes de cada commit y la ejecución manual de la aplicación.
-- La validación del frontend en el navegador.
-- Algunos refactorizados que se podían solucionar de forma más rápida por el desarrollador.
+- El diseño de seguridad (allowlist, guardrails y reglas de persistencia) y el esquema de la base.
+- La elección del modelo y la comprobación del modo degradado contra el proveedor real.
+- La revisión de cada diff antes del commit y la ejecución manual de la API y del frontend.
+- Algunos refactorizados que resolví directamente por rapidez.
 
 ### ¿Qué decisiones no permitió tomar a la IA?
 
-- El modelo principal (se optó por el gratuito con verificación previa del comportamiento).
-- El esquema de la base de datos: se definió antes de implementar y sin `correlation_id`.
+Las decisiones de arquitectura y de negocio, que requerían mi aprobación explícita:
+
+- El modelo principal: elegí el gratuito tras verificar su comportamiento.
+- El esquema de la base: se definió antes de implementar; se descartó un identificador de correlación
+  porque no hay llamadas entre servicios.
 - El alcance del corpus: la IA no añadió documentos por su cuenta; `Inversiones.md` y
   `Criptomoneda.md` se incorporaron con autorización y el documento restringido quedó fuera.
 - El modo de entrega (respuesta JSON única, sin streaming) y la decisión de no añadir dependencias.
@@ -229,13 +246,11 @@ Me gustaría aclarar que para este proyecto se hizo uso de OpenCode una herramie
 - **La persistencia y el acceso a datos**: SQL parametrizado, transacciones, índices y versionado del
   esquema.
 - **La seguridad**: detección de patrones sensibles, redacción, control de acceso y secretos.
-- **La infraestructura**: despliegue, configuración, observabilidad y backups.
+- **La infraestructura**: despliegue, configuración, observabilidad y respaldos.
 - **La frontera entre servicios**: el puerto 8000 expone **solo** la API (JSON y Swagger en `/docs`)
-  y el 5173 el chat. El frontend llama a la API del puerto 8000 directamente, así que son orígenes
-  distintos: por eso la API mantiene una allowlist explícita que acepta `localhost:5173` y
-  `127.0.0.1:5173` y rechaza cualquier otra origen. El proxy de Vite queda como red de seguridad
-  para el caso de que la llamada directa falle. Servir el frontend desde la propia API existe, pero
-  es **opt-in** (`WALLE_SERVIR_FRONTEND=true`).
+  y el 5173 el chat. Como son orígenes distintos, la API mantiene una allowlist CORS explícita que
+  acepta `localhost:5173` y `127.0.0.1:5173` y rechaza cualquier otro origen. Servir el frontend
+  desde la propia API existe, pero es **opt-in** (`WALLE_SERVIR_FRONTEND=true`).
 
 ### ¿Qué responsabilidades delegaría a IA?
 
@@ -257,12 +272,12 @@ Me gustaría aclarar que para este proyecto se hizo uso de OpenCode una herramie
 
 ### ¿Cómo mantendría separadas estas responsabilidades?
 
-- **Separación de capas**: `seguridad/`, `dominio/`, `recuperacion/` y `persistencia/` no importan nada
+- **Separación de capas**: `seguridad/`, `dominio/`, `recuperacion/` y `persistencia/` no dependen
   del módulo del modelo; el modelo solo recibe un contexto y devuelve texto.
 - **Contrato tipado**: el cliente de modelo implementa un `Protocol` (`ClienteModelo`), lo que permite
   sustituirlo por un doble en las pruebas y revisar su salida sin que el dominio dependa del
   proveedor.
-- **Reglas expressed as código**: los patrones sensibles y las instrucciones adversas son
+- **Reglas expresadas como código**: los patrones sensibles y las instrucciones adversas son
   constantes y funciones con pruebas, no instrucciones en el prompt.
 - **Revisión y trazabilidad**: todo cambio del prompt es un diff revisable, y el comportamiento está
   fijado por pruebas que fallan antes de implementarse.
@@ -276,22 +291,23 @@ Me gustaría aclarar que para este proyecto se hizo uso de OpenCode una herramie
 ### ¿Qué componente tendría mayor riesgo de latencia?
 
 **La llamada al modelo**, con diferencia: son 2–8 s por consulta con el modelo gratuito, frente a
-milésimas de la recuperación y de la base de datos. En segundo lugar, el límite de cuota del proveedor
-gratuito (`429`) es la causa más probable de degradación bajo carga. El segundo riesgo es la
-**contención de la base** si muchas consultas escriben a la vez (mitigada ya con WAL y `busy_timeout`).
+milisegundos de la recuperación y de la base de datos. Después aparece el límite de cuota del
+proveedor gratuito (`429`), la causa más probable de degradación bajo carga, y la **contención de la
+base** si muchas consultas escriben a la vez (mitigada ya con WAL y `busy_timeout`).
 
 ### ¿Qué estrategia utilizaría para reducir tiempos de respuesta?
 
 1. **Caché de respuestas** por pregunta normalizada y versión del corpus (hash del contenido): las
-   preguntas de los asesores son muy repetitivas.
+   preguntas de los asesores suelen repetirse mucho.
 2. **Caché de embeddings y de recuperación**: si se añade RAG semántico, el corpus indexado se
    reutiliza; hoy el corpus ya se carga una vez en memoria.
 3. **Filtrado previo**: si no hay documento relevante, responder localmente sin llamar al modelo
    (ya implementado: ~1 ms frente a ~3 s).
 4. **Degradación controlada**: cuando el proveedor va lento o sin cuota, el fallback extractivo
    responde en milisegundos y con la misma fuente.
-5. **Conexiones reutilizadas** al proveedor (pool de `httpx`) y timeouts escalonados.
-6. **Límite de concurrencia**: Control de requests por minuto y throughput.
+5. **Reutilizar el cliente HTTP** del proveedor (hoy se abre uno por llamada) y escalonar los
+   timeouts.
+6. **Límite de concurrencia**: peticiones por minuto y objetivo de throughput.
 
 ### ¿Qué podría cachear?
 
@@ -306,9 +322,9 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 ### ¿Qué monitorearía?
 
 - **Latencia**: p50, p95 y p99 por etapa (validación, guardrails, recuperación, modelo, persistencia).
-- **Tasa de degradación**: porcentaje de consultas querespondieron con el fallback local; es la
+- **Tasa de degradación**: porcentaje de consultas que respondieron con el fallback local; es la
   señal temprana de que el proveedor se está degradando.
-- **Errores del proveedor**: Errores o Warnings en los logs.
+- **Errores del proveedor**: tasa de 429/5xx y reintentos en los logs.
 - **Estado de las respuestas**: proporción de `Exitosa` / `Sin información suficiente` /
   `Bloqueada por seguridad`; un salto en la segunda indica deriva del corpus o preguntas nuevas
   repetidas.
@@ -325,9 +341,10 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 - **Caché** y filtrado previo: menos llamadas al proveedor es la palanca principal.
 - **Degradación local** cuando el proveedor no responde: el fallback no cuesta tokens.
 - **Sin failover automático a pago**: cualquier gasto requiere una decisión explícita.
-- Coste operativo bajo: una base de datos en un archivo, sin servidor de base de datos, sin cluster y
-  sin servidor de aplicación (la API sirve el frontend compilado).
-- Revisar el corpus antes de salir a producción: cada documento irrelevante es contexto que se paga en tokens.
+- Coste operativo bajo: una base de datos en un archivo, sin servidor de base de datos ni cluster, y
+  un único proceso de API más un frontend estático.
+- Revisar el corpus antes de salir a producción: cada documento irrelevante ensucia la recuperación
+  y puede desplazar al documento correcto.
 
 ---
 
@@ -343,19 +360,21 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 
 - **Cero dependencias y cero operación**: no hay servidor que instalar, configurar, respaldar ni
   monitorizar; el despliegue es local.
-- **El volumen lo permite**: 100.000 consultas al día son unos pocos millones de filas; SQLite las
-  maneja sin esfuerzo en un equipo modesto, y el historial se puede archivar por antigüedad.
-- **Transaccional y duradero**: WAL y `synchronous` adecuado garantizan que una consulta confirmada por
-  la API queda confirmada en disco.
+- **El volumen lo permite**: 100.000 consultas al día son unos tres millones de filas al mes (unos
+  36 millones al año); SQLite las maneja sin esfuerzo en un equipo modesto, y el historial se puede
+  archivar por antigüedad.
+- **Transaccional y duradero**: WAL y `synchronous` adecuado garantizan que una consulta confirmada
+  por la API queda confirmada en disco.
 - **Concurrencia suficiente**: la API escribe desde varios hilos; el modo WAL, el aislamiento por
   hilo y `busy_timeout` evitan el clásico "database is locked" (verificado con una prueba de diez
-  escrituras simultáneas).
+  hilos escribiendo a la vez).
 - **El acceso está encapsulado** detrás del protocolo `RepositorioConsultas`, de modo que cambiar de
   motor no obliga a reescribir la aplicación.
 
 ### ¿Qué ventajas tiene para este escenario?
 
-- **Simplicidad operativa**: el repositorio completo son pocos archivos.
+- **Simplicidad operativa**: la persistencia se reduce a un par de archivos y no requiere
+  administración.
 - **Portabilidad**: el mismo código funciona en Linux, macOS y Windows, y la base se puede copiar o
   respaldar copiando un archivo.
 - **Privacidad por defecto**: la base vive fuera del árbol versionado (`.gitignore`), con lo que la
@@ -368,8 +387,8 @@ gratuito (`429`) es la causa más probable de degradación bajo carga. El segund
 
 ### ¿Mantendría la misma solución de persistencia?
 
-**No en el motor, sí en el diseño.** Mantendría el **contrato** (`RepositorioConsultas`), el modelo de
-datos y el esquema conceptual —son válidos para producción—, pero no el motor local.
+**No en el motor, sí en el diseño.** Mantendría el **contrato** (`RepositorioConsultas`), el modelo
+de datos y el esquema conceptual —son válidos para producción—, pero no el motor local.
 
 En producción el historial pasa a ser un **activo compartido**: varios usuarios, varias instancias
 de la API y necesidad de respaldos y consultas analíticas. SQLite en un archivo local no cubre eso.
@@ -379,13 +398,13 @@ de la API y necesidad de respaldos y consultas analíticas. SQLite en un archivo
 **PostgreSQL** como base del historial.
 
 - Es el motor que mejor cubre el perfil real: acceso concurrente desde varias instancias, escritura
-  sostenida, respaldosHot y consultas analíticas sobre el historial (por ejemplo, qué se pregunta más
-  y qué respuestas quedan sin información suficiente).
-- La migración es acotada porque el acceso ya está detrás de un protocolo: bastaría una implementación
-  nueva del mismo contrato, con el mismo esquema (mismas columnas, mismos índices).
-- Si la operación fuera principalmente documental y con poco crecimiento, SQLite escalado con
-  réplicas de lectura sería una alternativa válida; con varias instancias de API, el sistema de
-  archivos local se convierte en el cuello de botella.
+  sostenida, respaldos en caliente y consultas analíticas sobre el historial (por ejemplo, qué se
+  pregunta más y qué respuestas quedan sin información suficiente).
+- La migración es acotada porque el acceso ya está detrás de un protocolo: bastaría una
+  implementación nueva del mismo contrato, con el mismo esquema (mismas columnas, mismos índices).
+- Si la operación fuera principalmente documental y con poco crecimiento, SQLite con LiteFS o
+  rqlite para réplicas de lectura sería una alternativa válida; con varias instancias de API, el
+  sistema de archivos local se convierte en el cuello de botella.
 
 ### ¿Por qué?
 
@@ -393,6 +412,6 @@ de la API y necesidad de respaldos y consultas analíticas. SQLite en un archivo
 - **Fiabilidad operativa**: respaldos incrementales, PITR, réplicas y monitorización estándar.
 - **Analítica**: el historial es la materia prima para medir calidad y decidir qué ampliar en el
   corpus; PostgreSQL permite analítica sin exportar el archivo.
-- **Coste operativo bajo**: una instancia gestionada o un contenedor con volumen persistente.
+- **Coste operativo contenido**: una instancia gestionada o un contenedor con volumen persistente.
 - **Camino conocido**: la decisión queda detrás del protocolo, de modo que el cambio es local y
   reversible, y la migración se puede hacer por pasos (doble escritura → verificación → corte).
