@@ -99,7 +99,7 @@ type Intercambio = {
 5. En ambos casos: enCurso = false y se refresca el historial (GET /api/historial)
 ```
 
-**Flujo de "Nueva conversación"**: se vacía `intercambios` y se limpia el aviso. El historial no se toca.
+**Flujo de "Nueva pregunta"**: se vacía `intercambios` y se limpia el aviso. El historial no se toca.
 
 **Flujo de selección en el historial**: se pide el detalle (`GET /api/historial/{id}`) y se añade el intercambio correspondiente al chat, sin borrar lo que ya había.
 

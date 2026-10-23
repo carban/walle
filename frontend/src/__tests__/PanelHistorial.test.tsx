@@ -162,7 +162,7 @@ describe('Panel lateral con el historial', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo borrar/i)
   })
 
-  it('limpia el chat sin tocar el historial con "Nueva conversación" (RF-04)', async () => {
+  it('limpia el chat sin tocar el historial con "Nueva pregunta" (RF-04)', async () => {
     const usuario = userEvent.setup()
     render(<App />)
 

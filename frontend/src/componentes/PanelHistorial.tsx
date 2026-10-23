@@ -60,7 +60,7 @@ export function PanelHistorial({
       </header>
 
       <button type="button" className="boton boton--secundario panel__nueva" onClick={onNueva}>
-        Nueva conversación
+        Nueva pregunta
       </button>
 
       <nav className="panel__lista" aria-label="Consultas anteriores">

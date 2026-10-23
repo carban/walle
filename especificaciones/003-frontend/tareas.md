@@ -59,7 +59,7 @@
   - Criterio: prueba que verifica que el detalle se pide y se pinta.
 - [x] **T-217** Implementar el borrado por índice: `DELETE /api/consultas/{id}`, actualización optimista del listado y reconciliación posterior con el servidor.
   - Criterio: prueba que verifica la llamada, la desaparición de la entrada y el refresco final.
-- [x] **T-218** Implementar "Nueva conversación": vacía el chat, conserva el historial y limpia el aviso.
+- [x] **T-218** Implementar "Nueva pregunta": vacía el chat, conserva el historial y limpia el aviso.
   - Criterio: prueba que verifica que el historial no cambia.
 
 ## Fase 6 — Estados y errores

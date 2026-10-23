@@ -194,7 +194,7 @@ Con la API en el 8000 y `npm run dev` en el 5173, verificado en Chromium:
 | 4 | Una pregunta fuera del corpus muestra `Sin información suficiente` con el mensaje canónico y **sin** aviso de error | ✅ |
 | 5 | Una solicitud de información restringida muestra `Bloqueada por seguridad` | ✅ |
 | 6 | Al elegir una entrada del historial, el chat muestra la consulta completa con sus fuentes | ✅ |
-| 7 | «Nueva conversación» vacía el chat y deja intacto el historial | ✅ |
+| 7 | «Nueva pregunta» vacía el chat y deja intacto el historial | ✅ |
 | 8 | El borrado pide confirmación y la entrada desaparece del panel | ✅ |
 | 9 | El botón del panel oculta y muestra el historial sin perder el chat | ✅ |
 | 10 | En pantalla estrecha (< 900 px) el panel arranca oculto y se abre y cierra sin tapar el botón de la barra | ✅ |

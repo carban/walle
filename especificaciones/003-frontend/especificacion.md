@@ -159,9 +159,9 @@ Característica: Interfaz web del asistente Walle
     Y el historial del servidor ya no la incluye
     Y las demás entradas permanecen
 
-  Escenario: Nueva conversación (RF-04)
+  Escenario: Nueva pregunta (RF-04)
     Dado que hay consultas en el chat y en el historial
-    When el asesor elige "Nueva conversación"
+    When el asesor elige "Nueva pregunta"
     Entonces el chat queda vacío
     Y el historial del panel lateral se mantiene intacto
 
