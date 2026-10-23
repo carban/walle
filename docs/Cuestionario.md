@@ -262,11 +262,11 @@ El aislamiento de responsabilidades se garantiza mediante una estricta arquitect
 
 ### ¿Por qué lo seleccioné?
 
-Por su nula sobrecarga operativa en un despliegue local y monousuario, sin servidores que administrar. Maneja holgadamente la carga proyectada de 100.000 consultas diarias (~3 millones mensuales) con durabilidad transaccional mediante WAL y aislamiento multihilo con `busy_timeout` (verificado con diez hilos simultáneos). Además, queda desacoplado tras `RepositorioConsultas`, facilitando migrar a otro motor en producción sin alterar la aplicación.
+Por su nula sobrecarga operativa en un despliegue local y monousuario, sin servidores que administrar. Maneja holgadamente una alta carga proyectada de varios requests por minuto con durabilidad transaccional mediante WAL y aislamiento multihilo con `busy_timeout` (verificado con hilos simultáneos). Además, queda desacoplado tras `RepositorioConsultas`, facilitando migrar a otro motor en producción sin alterar la aplicación.
 
 ### ¿Qué ventajas tiene para este escenario?
 
-Para este escenario específico, SQLite aporta una simplicidad operativa insuperable al residir toda la persistencia en un único archivo local, facilitando copias de respaldo y portabilidad inmediata entre sistemas Linux, macOS y Windows sin requerir administración de infraestructura. A su vez, garantiza privacidad por diseño al mantener los datos de las consultas de los asesores fuera del control de versiones (`.gitignore`), todo ello con costo cero de infraestructura y aprovechando las librerías nativas del lenguaje sin dependencias externas adicionales.
+Para este escenario específico, SQLite aporta una simplicidad operativa insuperable al residir toda la persistencia en un único archivo local, facilitando copias de respaldo y portabilidad inmediata entre cualquier sistema operativo sin requerir administración de infraestructura. A su vez, garantiza privacidad por diseño al mantener los datos de las consultas de los asesores fuera del control de versiones (`.gitignore`), todo ello con costo cero de infraestructura y aprovechando las librerías nativas del lenguaje sin dependencias externas adicionales.
 
 ---
 
