@@ -144,8 +144,8 @@ src/walle/persistencia/
 | `tests/unit/test_repositorio.py` | Alta, lectura por índice, listado ordenado, borrado, índices inexistentes, estado bloqueado sin contenido sensible, reinicio sobre la misma base, ruta configurable | SQLite en archivo temporal (`tmp_path`) y en memoria (`:memory:`) |
 | `tests/unit/test_rendimiento_persistencia.py` | 1000 inserciones y lectura del historial por debajo de los umbrales de RNF-01 | Test informativo: registra la duración y falla solo si excede un margen amplio, para no ser flaky en CI lento |
 | `tests/integration/test_api_historial.py` | Los tres endpoints con `TestClient`: 200, 404 y efecto real del borrado | Repositorio SQLite en archivo temporal inyectado por configuración |
-| `tests/integration/test_concurrencia.py` | Diez consultas simultáneas → diez filas, sin "database is locked" | Threads con `ThreadPoolExecutor` |
-| `tests/integration/test_api_salud.py` | `persistencia.disponible` en `true` y en `false` (ruta inválida) | Modo degradado |
+| `tests/unit/test_repositorio_sqlite.py` | Diez consultas simultáneas → diez filas, sin "database is locked" | Threads con `threading.Thread` |
+| `tests/integration/test_api_historial.py`, `tests/unit/test_repositorio_sqlite.py` | `persistencia.disponible` en `true` y en `false` (ruta inválida) | Modo degradado |
 
 **Reglas de la suite**
 
