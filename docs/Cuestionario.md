@@ -156,7 +156,7 @@ pero para este trabajo fue suficiente. Cabe recalcar que se puedieron haber usad
 
 ### ¿Cómo fueron instruidos?
 
-La instrucción del agente se articuló mediante un marco de gobierno jerárquico fijado en `AGENTS.md` y en la constitución del proyecto (seguridad por defecto, calidad, TDD, uso responsable de IA, mantenibilidad, costos y observabilidad). El agente operó bajo directrices explícitas y no negociables: abordar una sola característica y tarea técnica a la vez, ejecutar TDD riguroso, no añadir dependencias externas sin justificación y respetar de forma absoluta las restricciones de seguridad (como la exclusión total de `Data/Información restringida.md` y la no revelación de marcadores sensibles). Antes de cada bloque de implementación, se le alimentó con la especificación técnica correspondiente (abarcando requisitos funcionales, no funcionales, análisis de riesgos y criterios Gherkin), garantizando que su trabajo estuviese delimitado por criterios de aceptación verificables mediante pruebas automatizadas y requiriendo siempre la intervención humana ante modificaciones de arquitectura o contratos de API.
+Fueron instruidos bajo el marco de `AGENTS.md` y la constitución del proyecto: TDD estricto, una tarea a la vez, cero dependencias injustificadas y exclusión total de información sensible. Cada bloque de trabajo se delimitó con especificaciones previas (RF, RNF y criterios Gherkin), obligando a cumplir criterios de aceptación verificables y a consultar antes de modificar contratos o arquitectura.
 
 ### ¿Qué tareas delegó?
 
@@ -189,7 +189,7 @@ Se restringieron por completo a la IA las decisiones estratégicas de arquitectu
 
 ### ¿Qué responsabilidades resolvería mediante desarrollo tradicional?
 
-El desarrollo determinista tradicional asume el control estricto de todas las fronteras críticas, la seguridad y la consistencia del sistema. Esto abarca la definición de límites duros del dominio —como la allowlist documental, los estados de respuesta cerrados, el mensaje canónico de falta de información, los esquemas de validación de entrada/salida y el umbral de corte de suficiencia léxica—. De igual forma, la persistencia de datos (SQL parametrizado, transacciones ACID, índices y migraciones de esquema), la infraestructura, la observabilidad y los mecanismos de seguridad (escaneo y redacción de marcadores sensibles, aislamiento de secretos y reglas de acceso) se implementan íntegramente en código. Asimismo, el desacoplamiento operativo entre la API (puerto 8000) y la interfaz de usuario (puerto 5173), gobernado por políticas estrictas de CORS y montaje opt-in (`WALLE_SERVIR_FRONTEND=true`), permanece como una responsabilidad clásica de ingeniería donde la IA no tiene injerencia decisoria.
+Todo control determinista, de seguridad y consistencia: los límites duros del dominio (allowlist documental, estados cerrados, mensaje canónico y validaciones de E/S), la persistencia (SQL parametrizado, transacciones ACID y esquema), la detección y redacción de datos sensibles, la observabilidad, y las reglas de infraestructura como el aislamiento de puertos (8000 API vs. 5173 frontend) con políticas estrictas de CORS y montaje opt-in (`WALLE_SERVIR_FRONTEND=true`).
 
 ### ¿Qué responsabilidades delegaría a IA?
 
@@ -262,7 +262,7 @@ El aislamiento de responsabilidades se garantiza mediante una estricta arquitect
 
 ### ¿Por qué lo seleccioné?
 
-Se eligió SQLite debido a su nula sobrecarga operativa y su perfecta adecuación al modelo de despliegue local y monousuario, eliminando la necesidad de instalar, configurar, respaldar y monitorizar un servidor de base de datos independiente. Frente a una carga proyectada de 100.000 consultas diarias (~3 millones de registros mensuales o 36 millones al año), SQLite responde con holgura en un equipo modesto garantizando durabilidad y aislamiento transaccional gracias a la configuración de Write-Ahead Logging (WAL) y una política de sincronización adecuada. La concurrencia de escritura multihilo en la API se solventa limpiamente mediante conexiones aisladas por hilo y el ajuste de `busy_timeout`, evitando bloqueos de contención (verificado empíricamente con pruebas de concurrencia de diez hilos simultáneos). Además, el acceso a los datos se encuentra estrictamente desacoplado tras el protocolo `RepositorioConsultas`, permitiendo una eventual migración de motor sin necesidad de reescribir la lógica de la aplicación.
+Por su nula sobrecarga operativa en un despliegue local y monousuario, sin servidores que administrar. Maneja holgadamente la carga proyectada de 100.000 consultas diarias (~3 millones mensuales) con durabilidad transaccional mediante WAL y aislamiento multihilo con `busy_timeout` (verificado con diez hilos simultáneos). Además, queda desacoplado tras `RepositorioConsultas`, facilitando migrar a otro motor en producción sin alterar la aplicación.
 
 ### ¿Qué ventajas tiene para este escenario?
 
