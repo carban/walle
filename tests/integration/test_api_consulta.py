@@ -142,7 +142,7 @@ def test_salud_informa_corpus_y_proveedor(cliente: TestClient) -> None:
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
     assert cuerpo["estado"] == "ok"
-    assert cuerpo["corpus"]["documentos"] == 5
+    assert cuerpo["corpus"]["documentos"] == 7
     assert cuerpo["proveedor"]["modelo"] == "cohere/north-mini-code:free"
 
 

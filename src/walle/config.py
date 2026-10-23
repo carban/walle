@@ -18,6 +18,8 @@ DOCUMENTOS_PERMITIDOS: tuple[str, ...] = (
     "Portafolio de Microseguros.md",
     "Procedimientos Operativos.md",
     "Productos de Crédito.md",
+    "Inversiones.md",
+    "Criptomoneda.md",
 )
 
 #: Documentos excluidos de forma expresa. No se cargan, no se citan y no se persisten.

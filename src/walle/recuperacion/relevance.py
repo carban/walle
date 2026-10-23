@@ -117,6 +117,29 @@ _GRUPOS_SINONIMOS: tuple[frozenset[str], ...] = (
     frozenset({"tiempo", "dias", "habiles", "plazo_estimado"}),
     frozenset({"tasa", "interes", "intereses"}),
     frozenset({"pqr", "queja", "reclamo", "solicitud"}),
+    frozenset(
+        {
+            "inversion",
+            "inversiones",
+            "invertir",
+            "inversionista",
+            "rentabilidad",
+            "rendimiento",
+            "rendimientos",
+        }
+    ),
+    frozenset(
+        {
+            "criptomoneda",
+            "criptomonedas",
+            "cripto",
+            "criptoactivo",
+            "criptoactivos",
+            "wcoin",
+            "wcn",
+        }
+    ),
+    frozenset({"comprar", "compra", "compro", "compras", "adquirir", "adquisicion"}),
 )
 
 # Entidades del dominio: aparecen literalmente en los documentos.
@@ -130,6 +153,10 @@ _ENTIDADES = (
     "portafolio",
     "microseguros",
     "asesor comercial",
+    "wcoin",
+    "wcn",
+    "criptomoneda",
+    "criptoactivo",
 )
 
 _TOKEN = re.compile(r"[a-z0-9]+")
