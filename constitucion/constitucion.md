@@ -7,7 +7,7 @@ Versión 1.0 · Estado: ratificada · Alcance: todo el código y la documentaci�
 
 ## Propósito
 
-Walle responde consultas de asesores comerciales sobre créditos, microseguros, procedimientos y políticas internas, fundamentando **toda** respuesta en la documentación oficial de `Data/` y citando sus fuentes. La prioridad no es la sofisticación del modelo, sino la confianza: una respuesta sin evidencia documental no se emite.
+Walle responde consultas de asesores comerciales sobre créditos, microseguros, inversiones, criptomoneda, procedimientos y políticas internas, fundamentando **toda** respuesta en la documentación oficial de `Data/` y citando sus fuentes. La prioridad no es la sofisticación del modelo, sino la confianza: una respuesta sin evidencia documental no se emite.
 
 ## 1. Seguridad por defecto
 
@@ -82,3 +82,4 @@ Cualquier desviación de esta constitución se documenta como decisión explíci
 | D-07 | Esquema de la tabla `consultas`: `id`, `pregunta`, `fecha_hora`, `respuesta`, `fuentes` (JSON), `estado`, `duracion_ms`, `modelo` (sin `correlation_id`) | Aceptada | 2026-10-21 |
 | D-08 | Historial consultable por listado y por índice, con borrado por índice (sin borrado masivo) | Aceptada | 2026-10-21 |
 | D-09 | Se registra también la consulta bloqueada por seguridad, guardando el mensaje genérico | Aceptada | 2026-10-21 |
+| D-10 | Recuperación documental con Okapi BM25 (índice por documento y por sección), complementada con sinónimos del dominio, entidades y moneda | Aceptada | 2026-10-22 |

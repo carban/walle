@@ -162,8 +162,9 @@ patrones nuevos.
 
 En cuatro etapas, cada una justificada por una limitación observada:
 
-1. **Hoy**: recuperación léxica con sinónimos del dominio + documento completo enviado al modelo. Suficiente
-   porque el corpus es pequeño y el modelo puede leerlo entero.
+1. **Hoy**: recuperación léxica con Okapi BM25 (índice por documento y por sección), sinónimos del
+   dominio y documento completo enviado al modelo. Suficiente porque el corpus es pequeño y el modelo
+   puede leerlo entero.
 2. **Híbrido**: añadir embeddings (locales, para no enviar el corpus a un tercero) y combinar la
    puntuación semántica con la léxica. Resuelve la paráfrasis distante.
 3. **Troceado selectivo**: solo cuando los documentos crezcan; trocear por sección y recuperar los
@@ -217,7 +218,8 @@ agente (capas, convenciones, prohibiciones de seguridad, comandos de verificaci�
 
 - El modelo principal (se optó por el gratuito con verificación previa del comportamiento).
 - El esquema de la base de datos: se definió antes de implementar y sin `correlation_id`.
-- El alcance del corpus: no se añadieron documentos a `Data/`.
+- El alcance del corpus: la IA no añadió documentos por su cuenta; `Inversiones.md` y
+  `Criptomoneda.md` se incorporaron con autorización y el documento restringido quedó fuera.
 - El modo de entrega (respuesta JSON única, sin streaming) y la decisión de no añadir dependencias.
 - La política de coste: nunca failover automático a un modelo de pago.
 - Qué se documenta y cómo se responde el cuestionario de evaluación.

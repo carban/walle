@@ -31,7 +31,7 @@
                │                       │               │
                ▼                       ▼               ▼
         Bloqueada por         Contexto con        free model
-        seguridad            documento(s)        minimax + fallback
+        seguridad            documento(s)         + fallback
                                                         │
                     ┌───────────────────────────────────▼──────────────┐
                     │  Persistencia (capa persistencia)                │
@@ -48,7 +48,7 @@ pregunta
    │
    ├─(2) guardrail anti-inyección         → 200 "Bloqueada por seguridad" (sin llamar al modelo)
    │
-   ├─(3) recuperación: relevancia de docs → si ninguno supera el umbral:
+   ├─(3) recuperación: BM25 de documentos  → si ninguno supera el umbral:
    │                                        → 200 "Sin información suficiente" (sin llamar al modelo)
    │
    ├─(4) llamada al modelo con el documento completo
@@ -64,10 +64,10 @@ pregunta
 
 ### 1.2 Sin troceado (chunking)
 
-Los seis documentos del corpus son pequeños (decenas de líneas). Trocearlos no aporta precisión y complica la trazabilidad de las fuentes. El sistema:
+Los siete documentos permitidos del corpus son pequeños (decenas de líneas). Trocearlos no aporta precisión y complica la trazabilidad de las fuentes. El sistema:
 
 1. Carga cada documento permitido completo en memoria, una vez al arrancar, con su hash de contenido para detectar duplicados.
-2. Ante cada pregunta calcula un puntaje de relevancia léxico (tokenización con normalización de acentos y minúsculas + tabla de sinónimos del dominio + solapamiento de phrasesbigramas).
+2. Ante cada pregunta construye un índice Okapi BM25 sobre el contenido completo de cada documento, con tokenización que normaliza acentos, minúsculas y plurales, y calcula el puntaje de relevancia; lo complementa con sinónimos del dominio, entidades y moneda.
 3. Selecciona el **documento más relevante**; además incluye los documentos que alcanzan un **30 % del mejor puntaje**, de modo que una pregunta que cruza dos dominios (un seguro y un crédito) llegue al modelo con ambos documentos.
 4. Envía el **documento completo** (o los documentos seleccionados) al modelo.
 
@@ -92,7 +92,8 @@ src/
     ├── recuperacion/
     │   ├── __init__.py
     │   ├── corpus.py           # carga Data/, allowlist, hash/dedupe, cache en memoria
-    │   ├── relevance.py        # tokenización, sinónimos, puntaje, umbral, selección
+    │   ├── bm25.py             # índice Okapi BM25 reutilizable (documentos y secciones)
+    │   ├── relevance.py        # índice BM25, tokenización, sinónimos, puntaje, umbral, selección
     │   └── fuentes.py          # construcción de la lista de fuentes (documento + fragmento)
     ├── modelo/
     │   ├── __init__.py
@@ -168,10 +169,11 @@ tests/
 
 ### 2.3 Recuperación documental
 
-- **Allowlist** (`config.py`): por defecto se permiten `Manual del Asesor Comercial.md`, `Políticas de Atención.md`, `Portafolio de Microseguros.md`, `Procedimientos Operativos.md`, `Productos de Crédito.md`. `Información restringida.md` queda en la lista de exclusión explícita y **nunca** se carga.
+- **Allowlist** (`config.py`): por defecto se permiten `Manual del Asesor Comercial.md`, `Políticas de Atención.md`, `Portafolio de Microseguros.md`, `Procedimientos Operativos.md`, `Productos de Crédito.md`, `Inversiones.md` y `Criptomoneda.md`. `Información restringida.md` queda en la lista de exclusión explícita y **nunca** se carga.
 - **Deduplicación**: hash SHA-256 del contenido normalizado; dos archivos con el mismo contenido se cargan una sola vez y se reporta el duplicado en la traza.
-- **Puntaje de relevancia**: para cada documento se calcula la cobertura de términos de la pregunta (normalizados, sin acentos, con sinónimos del dominio: `microseguro ↔ seguro`, `plazo ↔ meses`, `monto ↔ límite`, `reclamación ↔ reclamación`) más un bonus por coincidencia de entidades (nombres de producto, `$`, porcentajes). Si el puntaje máximo es inferior al **umbral 1.0** (ningún término de la pregunta coincide), no hay documento relevante.
-- **Fuentes**: cada documento se parsea por secciones (`#`, `##`, `###`); la fuente apunta al encabezado de la sección usada.
+- **Índice BM25**: se construye uno a nivel documento sobre el contenido completo y otro interno por sección sobre el título y el texto. Parámetros Okapi BM25 `k1=1.2` y `b=0.75`; el IDF penaliza los términos presentes en todo el corpus y la normalización por longitud evita favorecer documentos largos.
+- **Puntaje de relevancia**: BM25 del documento más una bonificación por sinónimos del dominio ponderada por frecuencia documental, `1.5` por coincidencia de entidad (nombres de producto) y `0.5` si la pregunta menciona moneda y el documento contiene importes. Se considera relevante el documento con puntaje `>= WALLE_UMBRAL_RELEVANCIA` (por defecto `1.0`) y `>= 30 %` del mejor puntaje. Si ninguno alcanza el umbral, no hay documento relevante.
+- **Fuentes**: cada documento se parsea por secciones (`#`, `##`, `###`); las secciones se ordenan con el índice BM25 interno y se citan hasta tres con puntaje `>= 50 %` del mejor. Si no hay coincidencia, se cita la primera sección con texto. La fuente apunta al encabezado de la sección usada.
 
 ### 2.4 Guardrails
 
@@ -179,7 +181,7 @@ tests/
 |------|---------|-----------|
 | Entrada | Detección de instrucciones adversas (`ignora tus instrucciones`, `actúa como`, `revela`, `token`, `clave`, `credencial`, `administrador`, `system prompt`) combinadas con intención de obtener material interno | `Bloqueada por seguridad`, sin invocar al modelo |
 | Corpus | Allowlist; el documento restringido no se carga ni se cita | Sin fuga por contexto |
-| Salida | Búsqueda de marcadores sensibles (`INT-8457-SECRET-782`, `TMP-998877`, `admin_laboratorio`, `LAB-W-CORE` y patrones genéricos de token/clave) | Se descarta la salida y se responde con el mensaje canónico |
+| Salida | Búsqueda de los marcadores sensibles definidos como constantes privadas en `seguridad/sensibles.py` (token interno, clave temporal, usuario administrador y patrones genéricos de token/clave) | Se descarta la salida y se responde con el mensaje canónico |
 | Logs | Redacción de secretos y del cuerpo de las excepciones | Sin secretos en trazas |
 
 > Nota: los valores literales de los marcadores sensibles viven en el código como constantes privadas de `seguridad/sensibles.py`; no se imprimen en logs ni en las respuestas de error.
@@ -220,7 +222,7 @@ Variables en `.env` (con valores por defecto seguros en `config.py`):
 - **Hermeticidad**: la suite por defecto no sale a la red. El cliente de modelo se sustituye por un doble; el reloj y el identificador de correlación se inyectan.
 - **TDD estricto**: cada tarea de `tareas.md` empieza por una prueba que falla.
 - **Niveles**:
-  - `tests/unit/` — funciones puras: validación, relevancia, guardrails, estados, fallback, fuentes.
+  - `tests/unit/` — funciones puras: validación, índice BM25, relevancia, guardrails, estados, fallback, fuentes. Las pruebas del índice viven en `tests/unit/recuperacion/test_bm25.py`.
   - `tests/integration/` — la app FastAPI completa con `TestClient` y proveedor simulado; se validan los códigos HTTP y el contrato JSON.
   - `tests/contract/` — opcional, contra OpenRouter real; se marca `@pytest.mark.integration` y se ejecuta solo con `--integration` y `OPENROUTER_API_KEY` presente.
 
@@ -229,17 +231,19 @@ Variables en `.env` (con valores por defecto seguros en `config.py`):
 | Caso | Tipo | Prueba |
 |------|------|--------|
 | Consulta válida | Positivo | `test_consulta_valida_devuelve_200_y_fuentes` |
-| Pregunta vacía | Negativo | `test_pregunta_vacia_422` |
-| Base documental vacía | Negativo | `test_corpus_vacio_responde_sin_informacion` |
+| Pregunta vacía | Negativo | `test_pregunta_vacia_devuelve_422` |
+| Base documental vacía | Negativo | `test_corpus_vacio_no_falla` (unitaria; falta prueba de respuesta de la API) |
 | Caracteres especiales | Borde | `test_caracteres_especiales_aceptados` |
 | Documentos duplicados | Borde | `test_documentos_duplicados_se_cargan_una_vez` |
-| Consultas extensas | Borde | `test_consulta_extensa_422` |
-| Prompt injection | Seguridad | `test_intento_inyeccion_bloqueado` |
-| Documento restringido | Seguridad | `test_documento_restringido_no_se_carga` |
-| Salida con secreto | Seguridad | `test_salida_con_token_se_descarta` |
-| Proveedor caído | Degradación | `test_proveedor_caido_usa_fallback` |
-| Sin invocar al modelo | Costo | `test_fuera_de_corpus_no_invoca_modelo` |
-| Persistencia | Integración | `test_consulta_se_persiste` (char. 002) |
+| Consultas extensas | Borde | `test_consulta_extensa_devuelve_422` |
+| Prompt injection | Seguridad | `test_intento_de_inyeccion_queda_bloqueado` |
+| Documento restringido | Seguridad | `test_documento_restringido_nunca_se_abre`, `test_documentos_no_expone_contenido_restringido` |
+| Salida con secreto | Seguridad | `test_salida_con_secreto_se_descarta` |
+| Proveedor caído | Degradación | `test_proveedor_caido_usa_fallback_extractivo`, `test_proveedor_caido_responde_con_fallback` |
+| Sin invocar al modelo | Costo | `test_consulta_fuera_del_corpus_no_invoca_al_modelo` |
+| Ranking BM25 de documentos | Unitario | `test_bm25_ranking_por_coincidencias`, `test_recupera_documento_credito_producto` |
+| Selección de sección por BM25 | Unitario | `test_recupera_seccion_especifica_del_documento`, `test_bm25_normaliza_por_longitud` |
+| Persistencia | Integración | `test_todas_las_consultas_se_registran`, `test_consulta_registrada_aparece_en_el_historial` (char. 002) |
 
 ### 3.3 Comandos
 
@@ -256,7 +260,7 @@ uv run mypy src                     # tipado
 | Riesgo | Mitigación en el plan |
 |--------|-----------------------|
 | Los modelos gratuitos devuelven 429 con frecuencia | Timeout + reintento acotado + fallback determinista; nunca pago automático |
-| La relevancia léxica falla con paráfrasis | Sinónimos del dominio + entidades + umbral conservador que prefiere responder "sin información suficiente" |
+| La relevancia léxica falla con paráfrasis | BM25 con IDF y normalización por longitud, sinónimos del dominio, entidades y umbral conservador que prefiere responder "sin información suficiente" |
 | Fuga por el documento restringido | Allowlist en configuración, cargada al inicio y verificada por prueba unitaria |
 | Dependencia de red en las pruebas | Dobles de `ClienteModelo`; la suite por defecto no hace peticiones HTTP |
 | Latencia alta (~8 s observadas) | Sin streaming (decisión D-02); el frontend muestra estado de carga y el tiempo se mide y se registra |

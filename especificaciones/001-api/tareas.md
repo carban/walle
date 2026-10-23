@@ -38,8 +38,8 @@
 
 - [x] **T-009** Implementar `src/walle/recuperacion/corpus.py`: carga de `Data/` con **allowlist explícita**, exclusión del documento restringido, normalización de texto, hash SHA-256 para duplicados y caché en memoria.
   - Criterio: `tests/unit/test_corpus.py` — el documento restringido no aparece en el corpus; dos archivos con el mismo contenido se cargan una vez; el corpus vacío se maneja sin excepción.
-- [x] **T-010** Implementar `src/walle/recuperacion/relevance.py`: tokenización con normalización de acentos y minúsculas, tabla de sinónimos del dominio, detección de entidades (productos, `$`, porcentajes), puntaje por documento y selección con margen de empates.
-  - Criterio: `tests/unit/test_relevance.py` — "monto máximo del Crédito Productivo Impulso" selecciona `Productos de Crédito.md`; "clima en Marte" no selecciona ninguno; "reclamación" selecciona microseguros y procedimientos.
+- [x] **T-010** Implementar `src/walle/recuperacion/bm25.py` y `src/walle/recuperacion/relevance.py`: índice Okapi BM25 por documento y por sección, tokenización con normalización de acentos, minúsculas y plurales, tabla de sinónimos del dominio, detección de entidades (productos, `$`, porcentajes), puntaje combinado y selección con umbral y margen de empates.
+  - Criterio: `tests/unit/test_relevance.py` y `tests/unit/recuperacion/test_bm25.py` — "monto máximo del Crédito Productivo Impulso" selecciona `Productos de Crédito.md`; "clima en Marte" no selecciona ninguno; "reclamación" selecciona microseguros y procedimientos; el índice BM25 calcula IDF, normaliza por longitud y ordena por puntaje.
 - [x] **T-011** Implementar `src/walle/recuperacion/fuentes.py`: parseo por secciones (`#`, `##`, `###`) y construcción de `Fuente(documento, fragmento)` con el encabezado y la línea de la sección.
   - Criterio: `tests/unit/test_fuentes.py` — el fragmento corresponde al encabezado real del documento.
 - [x] **T-012** Implementar `src/walle/fallback/extractivo.py`: extracción determinista por solapamiento de frases con la pregunta; si no hay solapamiento, mensaje canónico.

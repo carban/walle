@@ -1,9 +1,9 @@
 # Walle — Asistente interno para asesores comerciales
 
-Walle responde consultas sobre **productos de crédito, microseguros, procedimientos operativos y
-políticas internas**, fundamentando **toda** respuesta en la documentación de `Data/` y citando sus
-fuentes. Es un sistema interno: la prioridad es la confianza y la protección de la información, no
-la sofisticación del modelo.
+Walle responde consultas sobre **productos de crédito, microseguros, inversiones, criptomoneda,
+procedimientos operativos y políticas internas**, fundamentando **toda** respuesta en la
+documentación de `Data/` y citando sus fuentes. Es un sistema interno: la prioridad es la confianza
+y la protección de la información, no la sofisticación del modelo.
 
 Una respuesta sin evidencia documental no se emite. Cuando la información no está en el corpus, el
 asistente lo dice exactamente: *"No tengo información suficiente para responder."*
@@ -26,7 +26,7 @@ El flujo completo de una consulta:
 pregunta
   → (1) validación de entrada ............ 422 si es inválida
   → (2) guardrail anti-inyección ......... "Bloqueada por seguridad" (sin llamar al modelo)
-  → (3) recuperación documental .......... sin documento relevante ⇒ "Sin información suficiente"
+  → (3) recuperación documental (BM25) ... sin documento relevante ⇒ "Sin información suficiente"
   → (4) modelo (OpenRouter, gratis) ...... con el documento completo, sin trocear
   → (5) validación de la salida .......... si contiene material sensible, se descarta
   → (6) respuesta + fuentes ............... se registra en SQLite
@@ -50,13 +50,13 @@ pregunta
        ┌───────────────▼──┐  ┌──────▼────────┐  ┌▼──────────────────┐
        │ seguridad/       │  │ recuperacion/ │  │ modelo/           │
        │ · inyeccion.py   │  │ · corpus.py   │  │ · cliente.py      │
-       │ · sensibles.py   │  │ · relevance.py│  │ · prompt.py       │
-       │ · trazas.py      │  │ · fuentes.py  │  └▼──────────────────┘
-       └──────────────────┘  └───────────────┘     OpenRouter (gratis)
-                                                        │ falla
-                                                        ▼
-                                              fallback/extractivo.py
-                                                    (determinista, local)
+       │ · sensibles.py   │  │ · bm25.py     │  │ · prompt.py       │
+       │ · trazas.py      │  │ · relevance.py│  └▼──────────────────┘
+       └──────────────────┘  │ · fuentes.py  │     OpenRouter (gratis)
+                             └───────────────┘          │ falla
+                                                       ▼
+                                             fallback/extractivo.py
+                                                   (determinista, local)
                                     │
                     ┌───────────────▼──────────────────────────┐
                     │  persistencia/repositorio.py              │
@@ -66,14 +66,31 @@ pregunta
 
 ### Decisiones de diseño relevantes
 
-- **Sin chunking**: los seis documentos son pequeños; se envía el documento **completo** al modelo.
-  Trocearlos no aporta precisión y complica la trazabilidad de las fuentes.
-- **Allowlist explícita de documentos**: solo se cargan los cinco documentos permitidos.
+- **Sin chunking**: los siete documentos permitidos son pequeños; se envía el documento **completo**
+  al modelo. Trocearlos no aporta precisión y complica la trazabilidad de las fuentes.
+- **Recuperación BM25**: Okapi BM25 sobre el documento completo y sobre cada sección, complementado
+  con sinónimos del dominio, entidades y moneda. El umbral `WALLE_UMBRAL_RELEVANCIA` decide si se
+  invoca al modelo.
+- **Allowlist explícita de documentos**: solo se cargan los siete documentos permitidos.
   `Data/Información restringida.md` **nunca** se abre, indexa, cita ni persiste.
 - **La IA redacta; el sistema decide**: los estados válidos, los documentos permitidos y el criterio
   de suficiencia están en código, no en el prompt.
 - **Protocolo de persistencia**: la API no depende de SQLite, lo que permite el modo degradado a
   memoria y una futura migración de motor sin reescribir la aplicación.
+
+### Cómo ampliar el corpus
+
+Los dos documentos incorporados (`Inversiones.md` y `Criptomoneda.md`) quedaron registrados en:
+
+1. `Data/`: el archivo Markdown con el contenido.
+2. `src/walle/config.py`: la allowlist `DOCUMENTOS_PERMITIDOS`.
+3. `src/walle/recuperacion/relevance.py`: `_GRUPOS_SINONIMOS` y `_ENTIDADES` cuando el documento
+   introduce vocabulario o productos nuevos.
+4. `tests/`: el conteo de `corpus.documentos` en `tests/integration/test_api_consulta.py` y las
+   pruebas de recuperación del nuevo dominio.
+5. Documentación: conteo en `README.md`, `001-api/especificacion.md` y `001-api/plan.md`.
+
+El documento restringido no se toca: sigue fuera de la allowlist y nunca se abre.
 
 ### Los tres estados de respuesta
 
@@ -92,6 +109,7 @@ pregunta
 | API | FastAPI + Pydantic v2 | Validación tipada, OpenAPI automático y asíncrono |
 | Cliente HTTP | `httpx` | Timeout, reintentos y transporte simulable en pruebas |
 | Proveedor | OpenRouter (`cohere/north-mini-code:free`) | Modelo **gratuito** y suficiente para respuestas fundamentadas |
+| Recuperación | Okapi BM25 en memoria (sin dependencias) | Ranking léxico con IDF y normalización por longitud |
 | Persistencia | `sqlite3` (stdlib) | Cero dependencias, un archivo, sin servidor |
 | Frontend | React 19 + TypeScript + Vite | Tipado del contrato de la API y build rápido |
 | Pruebas | `pytest` + `pytest-cov` (backend), `vitest` + Testing Library (frontend) | Suites herméticas en ambos extremos |
@@ -297,8 +315,9 @@ pantalla estrecha) queda documentado en el apartado 6.2.
 
 - El modelo gratuito es el punto más débil del sistema: responde en 2–8 s y puede agotar su cuota
   (`429`), momento en el que el sistema degrada a la respuesta extractiva determinista.
-- La relevancia documental es **léxica** (tokens, sinónimos del dominio y entidades). Funciona bien
-  con el vocabulario del corpus, pero una paráfrasis muy distante cae en "sin información suficiente".
+- La relevancia documental es **léxica** (Okapi BM25 sobre documento y sección, con sinónimos del
+  dominio y entidades). Funciona bien con el vocabulario del corpus, pero una paráfrasis muy distante
+  cae en "sin información suficiente".
 - El modelo no tiene memoria conversacional: cada pregunta se resuelve de forma independiente.
 - Sin autenticación: la API asume un despliegue interno y de confianza.
 - El historial no tiene paginación (suficiente para el volumen local, no para una escala de cientos
@@ -323,7 +342,7 @@ pantalla estrecha) queda documentado en el apartado 6.2.
 
 ## 11. Uso de IA en el desarrollo
 
-El proyecto se desarrolló con un agente de IA (OpenCode, con Claude Sonnet 4.5 y MiniMax M3.1) bajo
+El proyecto se desarrolló con un agente de IA (OpenCode, con DeepSeek V4.1 Flash Free y MiniMax M3.1) bajo
 las reglas de `AGENTS.md` y la `constitucion/constitucion.md`. El detalle completo —herramientas,
 qué se delegó a la IA, qué se hizo a mano, qué sugerencias se rechazaron y cómo se validaron las
 respuestas— está en [`docs/Cuestionario.md`](docs/Cuestionario.md).
