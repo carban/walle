@@ -1,8 +1,5 @@
 # Cuestionario de evaluación — Walle
 
-**Proyecto:** Asistente interno para asesores comerciales
-**Stack:** Python 3.12 + FastAPI + `uv` · SQLite · React 19 + TypeScript + Vite (npm) · OpenRouter
-
 ---
 
 ## A. Uso de IA en el desarrollo
@@ -12,11 +9,10 @@
 | Herramienta | Uso en el proyecto |
 |-------------|--------------------|
 | **OpenCode** (agente de terminal) | Desarrollo asistido: lectura de la prueba técnica, redacción de la constitución, especificaciones, planes, tareas, código, pruebas y documentación. |
-| **DeepSeek V4.1** | Modelo principal del agente para diseño de especificaciones, implementación del backend y refactorizaciones. |
+| **DeepSeek V4.1** | Modelo principal del agente para diseño de especificaciones, implementación del backend, frontend y refactorizaciones. |
 | **OpenRouter API** | Proveedor del modelo de producto: `cohere/north-mini-code:free`, gratuito. |
 | **uv / pytest / ruff / mypy** | Entorno, suite de pruebas y puertas de calidad del backend. |
 | **npm / Vitest / Testing Library / oxlint / tsc** | Dependencias, suite de pruebas y puertas de calidad del frontend. |
-| **pdftotext** | Extracción del texto de `prueba-tecnica.pdf` (el modelo no lee PDF directamente). |
 
 ### 2. Qué actividades delegó a la IA
 
@@ -27,10 +23,9 @@
   especificación aprobada.
 - **Pruebas**: los casos unitarios, de integración y de contrato, y la suite de Vitest.
 - **Repetición mecánica**: refactorizados, ajustes de estilo, correcciones de tipado y de lint, y
-  borradores del README y de este cuestionario, revisados por mí.
+  borradores del README.
 - **Investigación**: verificación de qué modelos gratuitos existían en OpenRouter y de su
-  comportamiento real (la primera opción, `gemma-4-31b-it:free`, devolvió `429` y se descartó tras
-  medirlo).
+  comportamiento real.
 
 ### 3. Qué actividades realizó manualmente
 
@@ -50,7 +45,6 @@
 
 | Propuesta de la IA | Decisión | Motivo |
 |--------------------|----------|--------|
-| Rotar la clave de OpenRouter alojada en `.env` | **Aplazada hasta el despliegue** | Es una recomendación válida de seguridad; `.env` está ignorado por git y la clave no se versionó, pero conviene rotarla antes de publicar. |
 | Sustituir SQLite por una base cliente-servidor | **Rechazada** | El despliegue es local y monousuario; SQLite cumple sin dependencias ni operación. |
 | Streaming SSE de las respuestas | **Rechazada** | Se decidió esperar con un indicador de carga; el contrato se mantiene como respuesta JSON única. |
 | Fallback automático a un modelo de pago si el gratuito falla | **Rechazada** | Contradice el principio de coste cero y el control explícito del gasto; la degradación es local y determinista. |
@@ -61,7 +55,7 @@
 ### 5. Cómo validó las respuestas de la IA
 
 1. **Primero la especificación**: ninguna implementación se escribió sin requisito, criterio de
-   aceptación y tarea asociados (trazabilidad en la matriz §8 de cada especificación).
+   aceptación y tarea asociados (trazabilidad en la matriz de cada especificación).
 2. **TDD**: cada comportamiento se fijó primero con una prueba que fallaba; las suites quedaron en
    verde con `pytest` (más de 160 pruebas) y `vitest` (más de 50 casos, incluidos los e2e).
 3. **Puertas automáticas**: `ruff`, `mypy --strict`, `oxlint` y `tsc --noEmit` sin observaciones.
@@ -149,7 +143,7 @@ Prometheus/Grafana.
   que mida fidelidad (la cifra está en la fuente), cobertura de la pregunta y validez de la cita.
 - **Calidad de las citas**: comprobar que el documento y la sección citados existen y que el fragmento
   contiene el dato afirmado.
-- **Operación**: latencia (p50/p95), tasa de error del proveedor, número de degradaciones a fallback y
+- **Operación y tiempos de respuesta**: latencia (p50/p95), tiempos de respuesta en milisegundos, tasa de error del proveedor, número de degradaciones a fallback y
   duración de la escritura en base de datos.
 - **Seguridad**: consultas bloqueadas, salidas descartadas por marcador sensible y cualquier coincidencia
   del escáner de secretos sobre logs y base de datos.
@@ -171,6 +165,7 @@ observadas:
    fragmentos más relevantes, manteniendo la cita de documento + sección.
 4. **Reranking y memoria**: un reranker ligero sobre los candidatos y un registro de las consultas
    que quedaron sin respuesta para priorizar la ampliación del corpus.
+5. **Búsqueda semántica para discriminar**: Analizando el comportamiento semántico se puede deducir tanto correlaciones de preguntas válidas o como preguntas que buscan vulnerar el sistema.
 
 En todos los pasos, la **fuente** sigue siendo obligatoria y el documento restringido sigue fuera
 del índice: el RAG cambia lo que se recupera, nunca lo que se puede revelar.
@@ -188,7 +183,7 @@ incluye `AGENTS.md` con las reglas que gobiernan el trabajo de cualquier agente 
 prohibiciones de seguridad, comandos de verificación).
 
 OpenCode cubrió el alcance de este proyecto; en un equipo más grande valoraría otras herramientas,
-pero para este trabajo fue suficiente.
+pero para este trabajo fue suficiente. Cabe recalcar que se puedieron haber usado herramientas más avanzadas como Claude Code o Antigravity.
 
 ### ¿Cómo fueron instruidos?
 
@@ -293,7 +288,9 @@ Las decisiones de arquitectura y de negocio, que requerían mi aprobación expl�
 **La llamada al modelo**, con diferencia: son 2–8 s por consulta con el modelo gratuito, frente a
 milisegundos de la recuperación y de la base de datos. Después aparece el límite de cuota del
 proveedor gratuito (`429`), la causa más probable de degradación bajo carga, y la **contención de la
-base** si muchas consultas escriben a la vez (mitigada ya con WAL y `busy_timeout`).
+base** si muchas consultas escriben a la vez. 
+
+Este problema se puede presentar incluso con modelos de inferencia de pago.
 
 ### ¿Qué estrategia utilizaría para reducir tiempos de respuesta?
 
