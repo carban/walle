@@ -16,30 +16,11 @@
 
 ### 2. Qué actividades delegó a la IA
 
-- **Documentación de diseño**: primer borrador de `constitucion/constitucion.md`, de las tres
-  especificaciones (contexto, objetivo, alcance, RF, RNF, riesgos y criterios Gherkin), de los planes
-  técnicos y de las listas de tareas.
-- **Implementación**: el grueso del código de `src/walle/` y de `frontend/src/`, siempre a partir de una
-  especificación aprobada.
-- **Pruebas**: los casos unitarios, de integración y de contrato, y la suite de Vitest.
-- **Repetición mecánica**: refactorizados, ajustes de estilo, correcciones de tipado y de lint, y
-  borradores del README.
-- **Investigación**: verificación de qué modelos gratuitos existían en OpenRouter y de su
-  comportamiento real.
+La delegación a la IA se concentró en tareas con requisitos formalmente verificables. En la fase de diseño, se le encomendó la redacción de los primeros borradores de la constitución (`constitucion/constitucion.md`), las tres especificaciones técnicas (contexto, objetivo, alcance, RF, RNF, riesgos y criterios Gherkin), los planes arquitectónicos y las listas de tareas. En la fase de construcción, generó el grueso del código en `src/walle/` y `frontend/src/` siempre a partir de especificaciones aprobadas, así como la suite completa de pruebas (unitarias, integración, contrato y pruebas de componentes en Vitest). Asimismo, se delegaron actividades mecánicas e iterativas como refactorizaciones, ajustes de estilo, resolución de observaciones de tipado y linter, borradores de documentación y la investigación preliminar sobre la disponibilidad y comportamiento de modelos gratuitos en OpenRouter.
 
 ### 3. Qué actividades realizó manualmente
 
-- **Definición del problema y del alcance**: leer la prueba técnica, decidir qué hacer y qué no, y
-  elegir el modelo principal (gratuito) y el modo de degradación.
-- **Arquitectura y decisiones sensibles**: la allowlist documental, el orden de los guardrails
-  (entrada → corpus → salida), el protocolo de persistencia y la cadena de degradación.
-- **Revisión de código y de pruebas**: inspección de cada implementación contra la especificación,
-  corrección de los fallos detectados y verificación de que los tests fallaban antes de la
-  implementación (TDD).
-- **Verificación en ejecución**: arranque de la API y del frontend, consultas reales contra
-  OpenRouter, comprobación de los tres estados de respuesta, de la persistencia y del CORS.
-- **Juicio de negocio**: decidir que "sin información suficiente" y "Bloqueada por seguridad" son
-  estados normales y no errores, y que el documento restringido no se carga nunca.
+La intervención manual se reservó para la dirección técnica, el juicio de negocio y el control estricto de calidad y seguridad. Esto incluyó la definición inicial del problema y del alcance a partir de la prueba técnica, la selección del modelo gratuito y el diseño del modo degradado determinista. En el plano arquitectónico, se fijaron manualmente la allowlist documental, el orden de evaluación de los guardrails (entrada → corpus → salida), el protocolo de persistencia y la cadena de degradación. Del mismo modo, se realizó la supervisión rigurosa de cada diff contra la especificación, garantizando la aplicación estricta de TDD (comprobando que los tests fallaran antes de codificar). Finalmente, se ejecutó la validación manual de extremo a extremo (arranque de la API en el puerto 8000 y del frontend en el 5173, pruebas de CORS, verificación de los tres estados de respuesta y confirmación en disco) y se tomaron las decisiones críticas de negocio, tales como tratar "sin información suficiente" y "Bloqueada por seguridad" como estados normales de operación y asegurar la exclusión absoluta del documento restringido.
 
 ### 4. Qué sugerencias rechazó de la IA
 
@@ -86,15 +67,7 @@ Por eso el diseño permite cambiar de proveedor con una variable de entorno.
 
 ### ¿Cómo optimizaría costos?
 
-- **Caché de corpus**: los documentos se cargan una vez en memoria (ya implementado); no se releen
-  por consulta.
-- **Filtrado antes del modelo**: si ningún documento alcanza el umbral de relevancia, **no se llama al
-  modelo** (ahorra la llamada completa y responde en milisegundos).
-- **Contexto mínimo**: se envía el documento relevante completo, no el corpus entero, y sin historial
-  de la conversación.
-- **Modelo gratuito por defecto** y **sin failover de pago automático**.
-- **Salida corta**: el prompt limita la respuesta a 120 palabras y `max_tokens` a 1200 (los modelos
-  de razonamiento gastan parte del presupuesto en deliberar).
+La optimización de costos descansa en evitar llamadas innecesarias al proveedor y minimizar el consumo de tokens en cada invocación. Por diseño, el corpus documental se carga y mantiene indexado en memoria una sola vez al arrancar el servicio, evitando operaciones repetitivas de lectura por consulta. Si la evaluación de relevancia léxica (BM25) determina que ningún documento alcanza el umbral de suficiencia, el sistema corta la ejecución y emite la respuesta canónica local en milisegundos sin invocar al modelo externo. Cuando se requiere inferencia, se inyecta únicamente el documento relevante específico —sin transferir el corpus completo ni historial conversacional prescindible—, utilizando por defecto un modelo de costo cero (`cohere/north-mini-code:free`) con prohibición expresa de failover automático a opciones de pago. Asimismo, el consumo de tokens se acota limitando contractualmente la respuesta a 120 palabras y fijando un techo de 1.200 `max_tokens`, permitiendo espacio para deliberación interna sin incurrir en desbordamiento de cuota.
 
 ### ¿Cómo mitigaría Prompt Injection?
 
@@ -121,34 +94,11 @@ patrones nuevos.
 
 ### ¿Qué guardrails implementaría?
 
-- **Validación de entrada**: tipo, longitud mínima y máxima, y rechazo de caracteres de control.
-- **Allowlist documental** y exclusión expresa del material restringido.
-- **Criterio de suficiencia** medible (umbral de relevancia) y **mensaje canónico** único.
-- **Tres estados cerrados**: no se puede inventar un cuarto estado.
-- **Validación de salida** contra marcadores sensibles, con redacción en logs.
-- **Prompts versionados** y proveedores intercambiables.
-- **Restricciones de coste y de tiempo**: timeout, reintento acotado, degradación local y prohibido
-  el failover a pago.
-- **Red de seguridad del cliente**: React escapa por defecto y se prohíbe `dangerouslySetInnerHTML`.
-- **Trazabilidad**: cada consulta deja registro con estado, fuentes y duración.
+La arquitectura de guardrails opera de extremo a extremo cubriendo entrada, recuperación, inferencia y salida. En la frontera de entrada, se valida estrictamente el tipo de dato, longitudes mínima y máxima, y se rechazan caracteres de control. A nivel documental y de recuperación, opera una allowlist estricta con exclusión sistemática del material clasificado, respaldada por un criterio de suficiencia medible (umbral de relevancia léxica) que activa de forma determinista el mensaje canónico único ante vacíos de información. En la orquestación, el sistema restringe el ciclo de vida a tres estados cerrados e inmutables, gestiona reintentos acotados y timeouts estrictos, y prohíbe el failover a modelos de pago recurriendo a la degradación extractiva local. En la salida, las respuestas se validan exhaustivamente contra marcadores sensibles antes de persistirse, aplicando redacción preventiva en logs. Por último, la seguridad en el cliente React delega en el escape nativo prohibiendo `dangerouslySetInnerHTML`, mientras que el subsistema de trazabilidad audita cada consulta registrando su estado, fuentes y latencia sin exponer información confidencial.
 
 ### ¿Cómo monitorearía calidad?
 
-En producción lo acompañaría de métricas y trazas (OpenTelemetry) exportadas a un APM o a
-Prometheus/Grafana.
-
-- **Métricas de producto**: tasa de `Exitosa` / `Sin información suficiente` / `Bloqueada por
-  seguridad`; la tasa de insuficiencia es la señal más directa de cobertura del corpus.
-- **Calidad de la respuesta**: un conjunto de preguntas con respuesta esperada y un juez automático
-  que mida fidelidad (la cifra está en la fuente), cobertura de la pregunta y validez de la cita.
-- **Calidad de las citas**: comprobar que el documento y la sección citados existen y que el fragmento
-  contiene el dato afirmado.
-- **Operación y tiempos de respuesta**: latencia (p50/p95), tiempos de respuesta en milisegundos, tasa de error del proveedor, número de degradaciones a fallback y
-  duración de la escritura en base de datos.
-- **Seguridad**: consultas bloqueadas, salidas descartadas por marcador sensible y cualquier coincidencia
-  del escáner de secretos sobre logs y base de datos.
-- **Alertas**: caída del proveedor (aumento de degradaciones), aumento brusco de "sin información
-  suficiente" (deriva del corpus) y cualquier salida marcada como sensible.
+En un entorno productivo, el monitoreo se articularía mediante métricas e instrumentación distribuida con OpenTelemetry exportadas hacia un APM o Prometheus/Grafana. Desde la perspectiva de producto, se vigilaría la distribución de los tres estados (`Exitosa`, `Sin información suficiente` y `Bloqueada por seguridad`), donde un incremento anómalo de insuficiencia constituiría la señal primaria de desactualización o falta de cobertura del corpus. La fidelidad de las respuestas y citas se evaluaría mediante un conjunto curado de preguntas de prueba evaluadas periódicamente por un juez automatizado, verificando la presencia fáctica de las cifras y la existencia real de los documentos y secciones referenciados. Operacionalmente, se supervisaría la latencia en percentiles (p50, p95), tiempos de respuesta en milisegundos, tasas de error del proveedor (códigos 429 y 5xx), frecuencia de degradación hacia el fallback local y rendimiento de escritura en la base de datos. Por último, la observabilidad de seguridad registraría intentos de ataque bloqueados, salidas censuradas por marcadores sensibles y alertas automatizadas ante caídas de proveedores, desvíos semánticos o alertas del escáner de secretos sobre trazas y almacenamiento.
 
 ### ¿Cómo evolucionaría la solución hacia RAG?
 
@@ -187,48 +137,19 @@ pero para este trabajo fue suficiente. Cabe recalcar que se puedieron haber usad
 
 ### ¿Cómo fueron instruidos?
 
-- Con la **constitución** como marco de referencia: seguridad por defecto, calidad, TDD, uso
-  responsable de IA, mantenibilidad, optimización de costos y observabilidad.
-- Con la **especificación de la característica** (RF, RNF, riesgos, criterios Gherkin) y la lista de
-  tareas antes de cada bloque de trabajo.
-- Con reglas explícitas: una característica a la vez, una tarea a la vez, TDD estricto, nada de
-  dependencias sin justificar, nunca tocar `Data/Información restringida.md`, nunca imprimir marcadores
-  sensibles, y consultar al responsable antes de cambiar el contrato de la API o la arquitectura.
-- Con **criterios de aceptación verificables** en cada tarea, de modo que el agente no decidiera por
-  su cuenta si algo estaba "listo".
+La instrucción del agente se articuló mediante un marco de gobierno jerárquico fijado en `AGENTS.md` y en la constitución del proyecto (seguridad por defecto, calidad, TDD, uso responsable de IA, mantenibilidad, costos y observabilidad). El agente operó bajo directrices explícitas y no negociables: abordar una sola característica y tarea técnica a la vez, ejecutar TDD riguroso, no añadir dependencias externas sin justificación y respetar de forma absoluta las restricciones de seguridad (como la exclusión total de `Data/Información restringida.md` y la no revelación de marcadores sensibles). Antes de cada bloque de implementación, se le alimentó con la especificación técnica correspondiente (abarcando requisitos funcionales, no funcionales, análisis de riesgos y criterios Gherkin), garantizando que su trabajo estuviese delimitado por criterios de aceptación verificables mediante pruebas automatizadas y requiriendo siempre la intervención humana ante modificaciones de arquitectura o contratos de API.
 
 ### ¿Qué tareas delegó?
 
-Delegué las tareas que podían expresarse como un requisito verificable y revisarse después:
-
-- Los borradores de constitución, especificaciones, planes y listas de tareas, que luego corregí.
-- La implementación de los módulos del backend y del frontend, siempre contra una especificación
-  aprobada.
-- Las suites de pruebas (unitarias, de integración, de contrato y de componente), escritas antes del
-  código.
-- El trabajo mecánico: refactorizados, lint, tipado y actualización de la documentación.
+Se delegaron aquellas actividades susceptibles de expresarse como un requisito formalmente verificable y auditable. Esto incluyó la redacción inicial de borradores de la constitución, especificaciones funcionales, planes técnicos y listas de tareas, sujetos siempre a posterior corrección y aprobación humana. Asimismo, se delegó la implementación modular del código tanto en backend como en frontend contra especificaciones aprobadas, la generación previa de las suites de pruebas automatizadas (unitarias, integración, contrato y componentes en Vitest) y la ejecución de tareas mecánicas tales como refactorizaciones de estilo, resolución de avisos de tipado estricto y linter, y la actualización de la documentación técnica.
 
 ### ¿Qué tareas supervisó manualmente?
 
-El criterio fue supervisar personalmente todo lo que tocara alcance, seguridad, contrato o datos:
-
-- La definición del alcance y de los criterios de aceptación.
-- El diseño de seguridad (allowlist, guardrails y reglas de persistencia) y el esquema de la base.
-- La elección del modelo y la comprobación del modo degradado contra el proveedor real.
-- La revisión de cada diff antes del commit y la ejecución manual de la API y del frontend.
-- Algunos refactorizados que resolví directamente por rapidez.
+La supervisión manual se concentró de forma estricta en todo componente que afectara el alcance del proyecto, la seguridad, los contratos de interfaz o los datos sensibles. Se definió y acotó personalmente el alcance y los criterios de aceptación, el diseño de la arquitectura de seguridad (allowlist documental, guardrails y reglas de persistencia) y el esquema relacional de la base de datos. De igual forma, se evaluó la selección del modelo gratuito comprobando su comportamiento frente al modo degradado local, se inspeccionó minuciosamente cada diff antes de autorizar los commits, se ejecutaron pruebas operativas manuales de la API y del frontend en el navegador, y se resolvieron directamente refactorizaciones puntuales cuando la rapidez técnica lo aconsejaba.
 
 ### ¿Qué decisiones no permitió tomar a la IA?
 
-Las decisiones de arquitectura y de negocio, que requerían mi aprobación explícita:
-
-- El modelo principal: elegí el gratuito tras verificar su comportamiento.
-- El esquema de la base: se definió antes de implementar; se descartó un identificador de correlación
-  porque no hay llamadas entre servicios.
-- El alcance del corpus: la IA no añadió documentos por su cuenta; `Inversiones.md` y
-  `Criptomoneda.md` se incorporaron con autorización y el documento restringido quedó fuera.
-- El modo de entrega (respuesta JSON única, sin streaming) y la decisión de no añadir dependencias.
-- La política de coste: nunca failover automático a un modelo de pago.
+Se restringieron por completo a la IA las decisiones estratégicas de arquitectura y de negocio, requiriendo en todo momento aprobación explícita humana. Entre ellas destacan la elección del modelo principal tras contrastar su comportamiento real, la definición y congelación del esquema de la base de datos (descartando por ejemplo identificadores de correlación al no existir llamadas distribuidas), la delimitación del corpus documental (donde la IA no pudo incorporar archivos arbitrariamente, autorizándose de forma expresa `Inversiones.md` y `Criptomoneda.md` y excluyendo el material clasificado), el modo de entrega de la API mediante respuesta JSON única sin streaming para evitar dependencias innecesarias, y la política de gasto que prohíbe de manera tajante el failover automático hacia modelos de pago.
 
 ---
 
@@ -236,48 +157,19 @@ Las decisiones de arquitectura y de negocio, que requerían mi aprobación expl�
 
 ### ¿Qué responsabilidades resolvería mediante desarrollo tradicional?
 
-- **Los límites duros**: allowlist de documentos, estados válidos, mensajes canónicos, umbral de
-  suficiencia, esquema de la base, validaciones de entrada y de salida.
-- **La persistencia y el acceso a datos**: SQL parametrizado, transacciones, índices y versionado del
-  esquema.
-- **La seguridad**: detección de patrones sensibles, redacción, control de acceso y secretos.
-- **La infraestructura**: despliegue, configuración, observabilidad y respaldos.
-- **La frontera entre servicios**: el puerto 8000 expone **solo** la API (JSON y Swagger en `/docs`)
-  y el 5173 el chat. Como son orígenes distintos, la API mantiene una allowlist CORS explícita que
-  acepta `localhost:5173` y `127.0.0.1:5173` y rechaza cualquier otro origen. Servir el frontend
-  desde la propia API existe, pero es **opt-in** (`WALLE_SERVIR_FRONTEND=true`).
+El desarrollo determinista tradicional asume el control estricto de todas las fronteras críticas, la seguridad y la consistencia del sistema. Esto abarca la definición de límites duros del dominio —como la allowlist documental, los estados de respuesta cerrados, el mensaje canónico de falta de información, los esquemas de validación de entrada/salida y el umbral de corte de suficiencia léxica—. De igual forma, la persistencia de datos (SQL parametrizado, transacciones ACID, índices y migraciones de esquema), la infraestructura, la observabilidad y los mecanismos de seguridad (escaneo y redacción de marcadores sensibles, aislamiento de secretos y reglas de acceso) se implementan íntegramente en código. Asimismo, el desacoplamiento operativo entre la API (puerto 8000) y la interfaz de usuario (puerto 5173), gobernado por políticas estrictas de CORS y montaje opt-in (`WALLE_SERVIR_FRONTEND=true`), permanece como una responsabilidad clásica de ingeniería donde la IA no tiene injerencia decisoria.
 
 ### ¿Qué responsabilidades delegaría a IA?
 
-- La **redacción** de la respuesta a partir del contexto recuperado.
-- La **selección** de las frases relevantes dentro de un documento.
-- La **formulación** de la respuesta en lenguaje natural comprensible para el asesor.
-- El **resumen** de la explicación cuando el corpus es extenso.
-- La generación de **borradores de documentación y de casos de prueba** a partir de las
-  especificaciones.
+A la inteligencia artificial se le delegan las capacidades de síntesis, razonamiento contextual y generación de lenguaje natural. Esto comprende la redacción final de la respuesta a partir del contexto recuperado de los documentos oficiales, la selección precisa de fragmentos y frases pertinentes dentro de un texto, la formulación de explicaciones claras y empáticas comprensibles para el asesor comercial, y el resumen articulado de normativas extensas. Adicionalmente, se aprovecha su capacidad generativa para producir borradores iniciales de documentación técnica y casos de prueba exhaustivos a partir de las especificaciones funcionales.
 
 ### ¿Qué responsabilidades nunca permitiría ejecutar a una IA?
 
-- Decidir si una consulta se responde, se bloquea o se declara sin información suficiente.
-- Autorizar acceso a material clasificado o modificar la allowlist.
-- Escribir o migrar el esquema de la base de datos.
-- Gestionar credenciales, rotación de claves o despliegue.
-- Aprobar el paso a producción, publicar el código o tocar los datos en `Data/`.
-- Modificar los guardrails de seguridad.
+Bajo ninguna circunstancia se permitiría a una IA tomar decisiones de negocio ni ejecutar operaciones de gobernanza crítica. Esto incluye decidir si una consulta se responde, se bloquea o se declara sin información suficiente (lo cual es potestad exclusiva del código de guardrails), autorizar accesos a material clasificado o alterar la allowlist documental. Tampoco se le autoriza redactar ni migrar esquemas de base de datos, gestionar credenciales o rotación de claves, aprobar despliegues a entornos productivos, alterar los datos maestros de `Data/` o relajar bajo ningún motivo los guardrails de seguridad del sistema.
 
 ### ¿Cómo mantendría separadas estas responsabilidades?
 
-- **Separación de capas**: `seguridad/`, `dominio/`, `recuperacion/` y `persistencia/` no dependen
-  del módulo del modelo; el modelo solo recibe un contexto y devuelve texto.
-- **Contrato tipado**: el cliente de modelo implementa un `Protocol` (`ClienteModelo`), lo que permite
-  sustituirlo por un doble en las pruebas y revisar su salida sin que el dominio dependa del
-  proveedor.
-- **Reglas expresadas como código**: los patrones sensibles y las instrucciones adversas son
-  constantes y funciones con pruebas, no instrucciones en el prompt.
-- **Revisión y trazabilidad**: todo cambio del prompt es un diff revisable, y el comportamiento está
-  fijado por pruebas que fallan antes de implementarse.
-- **El modelo no decide el estado**: el sistema normaliza la salida (por ejemplo, si el modelo
-  devuelve el mensaje canónico sin tilde, el estado se corrige) y decide el estado final.
+El aislamiento de responsabilidades se garantiza mediante una estricta arquitectura por capas donde `seguridad/`, `dominio/`, `recuperacion/` y `persistencia/` operan de forma independiente y sin acoplamiento hacia el módulo del modelo generativo, el cual únicamente recibe contexto y devuelve texto plano. Dicha integración se desacopla a través del contrato formal `ClienteModelo` (`Protocol`), posibilitando sustituir al proveedor por dobles en pruebas herméticas sin impactar el dominio. Adicionalmente, las defensas ante contenido sensible e inyecciones residen en constantes y funciones deterministas probadas en código y no en directivas volátiles de prompt; cualquier modificación de los prompts constituye un diff versionado en el repositorio con pruebas preexistentes; y, fundamentalmente, la asignación del estado final de negocio recae en el sistema normalizador, asegurando que la IA redacte mientras que el software decide.
 
 ---
 
@@ -294,54 +186,19 @@ Este problema se puede presentar incluso con modelos de inferencia de pago.
 
 ### ¿Qué estrategia utilizaría para reducir tiempos de respuesta?
 
-1. **Caché de respuestas** por pregunta normalizada y versión del corpus (hash del contenido): las
-   preguntas de los asesores suelen repetirse mucho.
-2. **Caché de embeddings y de recuperación**: si se añade RAG semántico, el corpus indexado se
-   reutiliza; hoy el corpus ya se carga una vez en memoria.
-3. **Filtrado previo**: si no hay documento relevante, responder localmente sin llamar al modelo
-   (ya implementado: ~1 ms frente a ~3 s).
-4. **Degradación controlada**: cuando el proveedor va lento o sin cuota, el fallback extractivo
-   responde en milisegundos y con la misma fuente.
-5. **Reutilizar el cliente HTTP** del proveedor (hoy se abre uno por llamada) y escalonar los
-   timeouts.
-6. **Límite de concurrencia**: peticiones por minuto y objetivo de throughput.
+Para amortiguar la latencia de inferencia y optimizar el rendimiento bajo alta concurrencia, implementaría una estrategia basada en almacenamiento en caché jerárquico, corte temprano de peticiones y optimización de conexiones. En primer lugar, se aplicaría una caché de respuestas finales indexada por la normalización de la pregunta y el hash de versión del corpus, aprovechando la alta repetición en las dudas de los asesores. A nivel de recuperación, se reutilizarían los índices y embeddings en memoria (el corpus ya se mantiene precargado hoy en día). En segundo lugar, se maximiza el filtrado previo determinista: si la consulta carece de relevancia documental, se responde localmente en ~1 ms sin incurrir en los ~3 segundos de la llamada externa. En tercer lugar, ante cuellos de botella o agotamiento de cuota, la degradación controlada hacia el fallback extractivo resuelve la petición en milisegundos garantizando la fuente. Finalmente, en la capa de transporte se reutilizaría una sesión HTTP persistente con el proveedor (evitando abrir un cliente por llamada), escalonando los timeouts y definiendo techos de concurrencia y peticiones por minuto para proteger el throughput del sistema.
 
 ### ¿Qué podría cachear?
 
-- **Respuestas completas**, por (pregunta normalizada, hash del corpus): TTL corto y purga al
-  cambiar el corpus.
-- **Documentos y sus secciones**: ya se cachean en memoria al arrancar.
-- **Resultados de recuperación** por pregunta normalizada.
-- **Embeddings** del corpus y de las preguntas frecuentes, si se incorpora RAG semántico.
-- **Consultas repetidas**: el patrón de uso real (qué se pregunta más y qué respuestas fallan) es
-  además la fuente para ampliar el corpus.
+El esquema de almacenamiento en caché se estructuraría en múltiples niveles complementarios: respuestas completas asociadas a la tupla de pregunta normalizada y hash del corpus (con un TTL corto e invalidación automática ante actualizaciones documentales), los documentos oficiales y sus secciones estructuradas (actualmente precargados en memoria al iniciar la aplicación) y los resultados intermedios de recuperación léxica. De incorporarse RAG semántico en el futuro, se cachearían adicionalmente los embeddings del corpus y de las preguntas frecuentes. Por último, registrar y cachear las consultas repetidas no solo acelera la respuesta, sino que proporciona telemetría sobre los patrones reales de uso para guiar la ampliación del acervo documental.
 
 ### ¿Qué monitorearía?
 
-- **Latencia**: p50, p95 y p99 por etapa (validación, guardrails, recuperación, modelo, persistencia).
-- **Tasa de degradación**: porcentaje de consultas que respondieron con el fallback local; es la
-  señal temprana de que el proveedor se está degradando.
-- **Errores del proveedor**: tasa de 429/5xx y reintentos en los logs.
-- **Estado de las respuestas**: proporción de `Exitosa` / `Sin información suficiente` /
-  `Bloqueada por seguridad`; un salto en la segunda indica deriva del corpus o preguntas nuevas
-  repetidas.
-- **Calidad**: cobertura de las preguntas frecuentes y precisión de las citas.
-- **Persistencia**: tiempo de escritura, tamaño del archivo, ratio de lecturas por escritura.
-- **Seguridad**: consultas bloqueadas, salidas descartadas y cualquier coincidencia del escáner de
-  secretos.
-- **Coste**: tokens y consultas por modelo (aunque hoy sea gratuito, es la variable a vigilar).
+El sistema de observabilidad supervisaría integralmente métricas de rendimiento, fiabilidad, calidad y seguridad. En el ámbito operativo, se medirían las latencias en percentiles (p50, p95 y p99) desglosadas por etapa (validación, guardrails, recuperación, modelo y persistencia), los tiempos de respuesta en milisegundos, las tasas de error del proveedor (códigos 429 y 5xx), los reintentos y la tasa de degradación hacia el fallback local, cuya elevación alerta prematuramente sobre fallos del modelo externo. A nivel de producto y calidad, se vigilaría la proporción entre los estados `Exitosa`, `Sin información suficiente` (señal clave de deriva del corpus) y `Bloqueada por seguridad`, junto con la precisión de las citas y la cobertura de respuestas esperadas. Asimismo, en la capa de persistencia se auditaría el tiempo de escritura, tamaño de base de datos y ratio de lecturas frente a escrituras; en seguridad, el volumen de consultas bloqueadas, salidas censuradas y alertas del escáner de secretos; y en costos, el consumo granular de tokens y llamadas por modelo.
 
 ### ¿Cómo optimizaría costos de operación?
 
-- Mantener el **modelo gratuito** como configuración por defecto y medir su coste real (latencia y
-  tasa de error) frente a un modelo comercial pequeño antes de cambiar.
-- **Caché** y filtrado previo: menos llamadas al proveedor es la palanca principal.
-- **Degradación local** cuando el proveedor no responde: el fallback no cuesta tokens.
-- **Sin failover automático a pago**: cualquier gasto requiere una decisión explícita.
-- Coste operativo bajo: una base de datos en un archivo, sin servidor de base de datos ni cluster, y
-  un único proceso de API más un frontend estático.
-- Revisar el corpus antes de salir a producción: cada documento irrelevante ensucia la recuperación
-  y puede desplazar al documento correcto.
+La contención de costos operativos se basaría en la arquitectura de costo cero como línea base, priorizando el modelo gratuito por defecto y evaluando su costo real (en términos de latencia y tasa de error) antes de considerar cualquier transición hacia un modelo comercial pequeño. La principal palanca de ahorro radicaría en minimizar las invocaciones al proveedor externo mediante el uso intensivo de caché y el filtrado previo por relevancia léxica. Cuando el proveedor no responda, la degradación determinista local atiende la consulta sin costo alguno de tokens, manteniendo una política estricta sin failover automático a opciones de pago. Operacionalmente, la infraestructura mantendría una huella extremadamente ligera basada en SQLite en un archivo local sin servidores de base de datos dedicados ni clusters, ejecutando un único proceso de API y un frontend estático. Finalmente, se realizaría un saneamiento continuo del corpus documental previo al pase a producción, eliminando textos redundantes que ensucien la recuperación o provoquen contextos innecesariamente voluminosos.
 
 ---
 
@@ -355,28 +212,11 @@ Este problema se puede presentar incluso con modelos de inferencia de pago.
 
 ### ¿Por qué lo seleccioné?
 
-- **Cero dependencias y cero operación**: no hay servidor que instalar, configurar, respaldar ni
-  monitorizar; el despliegue es local.
-- **El volumen lo permite**: 100.000 consultas al día son unos tres millones de filas al mes (unos
-  36 millones al año); SQLite las maneja sin esfuerzo en un equipo modesto, y el historial se puede
-  archivar por antigüedad.
-- **Transaccional y duradero**: WAL y `synchronous` adecuado garantizan que una consulta confirmada
-  por la API queda confirmada en disco.
-- **Concurrencia suficiente**: la API escribe desde varios hilos; el modo WAL, el aislamiento por
-  hilo y `busy_timeout` evitan el clásico "database is locked" (verificado con una prueba de diez
-  hilos escribiendo a la vez).
-- **El acceso está encapsulado** detrás del protocolo `RepositorioConsultas`, de modo que cambiar de
-  motor no obliga a reescribir la aplicación.
+Se eligió SQLite debido a su nula sobrecarga operativa y su perfecta adecuación al modelo de despliegue local y monousuario, eliminando la necesidad de instalar, configurar, respaldar y monitorizar un servidor de base de datos independiente. Frente a una carga proyectada de 100.000 consultas diarias (~3 millones de registros mensuales o 36 millones al año), SQLite responde con holgura en un equipo modesto garantizando durabilidad y aislamiento transaccional gracias a la configuración de Write-Ahead Logging (WAL) y una política de sincronización adecuada. La concurrencia de escritura multihilo en la API se solventa limpiamente mediante conexiones aisladas por hilo y el ajuste de `busy_timeout`, evitando bloqueos de contención (verificado empíricamente con pruebas de concurrencia de diez hilos simultáneos). Además, el acceso a los datos se encuentra estrictamente desacoplado tras el protocolo `RepositorioConsultas`, permitiendo una eventual migración de motor sin necesidad de reescribir la lógica de la aplicación.
 
 ### ¿Qué ventajas tiene para este escenario?
 
-- **Simplicidad operativa**: la persistencia se reduce a un par de archivos y no requiere
-  administración.
-- **Portabilidad**: el mismo código funciona en Linux, macOS y Windows, y la base se puede copiar o
-  respaldar copiando un archivo.
-- **Privacidad por defecto**: la base vive fuera del árbol versionado (`.gitignore`), con lo que la
-  información de los asesores no llega al repositorio.
-- **Coste cero de infraestructura**.
+Para este escenario específico, SQLite aporta una simplicidad operativa insuperable al residir toda la persistencia en un único archivo local, facilitando copias de respaldo y portabilidad inmediata entre sistemas Linux, macOS y Windows sin requerir administración de infraestructura. A su vez, garantiza privacidad por diseño al mantener los datos de las consultas de los asesores fuera del control de versiones (`.gitignore`), todo ello con costo cero de infraestructura y aprovechando las librerías nativas del lenguaje sin dependencias externas adicionales.
 
 ---
 
@@ -392,23 +232,8 @@ de la API y necesidad de respaldos y consultas analíticas. SQLite en un archivo
 
 ### ¿Qué motor de base de datos utilizaría?
 
-**PostgreSQL** como base del historial.
-
-- Es el motor que mejor cubre el perfil real: acceso concurrente desde varias instancias, escritura
-  sostenida, respaldos en caliente y consultas analíticas sobre el historial (por ejemplo, qué se
-  pregunta más y qué respuestas quedan sin información suficiente).
-- La migración es acotada porque el acceso ya está detrás de un protocolo: bastaría una
-  implementación nueva del mismo contrato, con el mismo esquema (mismas columnas, mismos índices).
-- Si la operación fuera principalmente documental y con poco crecimiento, SQLite con LiteFS o
-  rqlite para réplicas de lectura sería una alternativa válida; con varias instancias de API, el
-  sistema de archivos local se convierte en el cuello de botella.
+En un entorno de producción distribuido se utilizaría **PostgreSQL** como base del historial. PostgreSQL cubre de manera óptima el perfil transaccional de un entorno con múltiples instancias de API escribiendo concurrentemente de forma sostenida, proporcionando respaldos en caliente y capacidades nativas de analítica sobre el historial (fundamentales para auditar qué consultas fallan o quedan sin información suficiente). La migración resulta técnicamente directa y de bajo riesgo gracias a que la capa de persistencia está encapsulada tras el protocolo `RepositorioConsultas`, permitiendo desplegar una nueva implementación que conserve idéntico esquema, columnas e índices. Si bien arquitecturas como SQLite con LiteFS o rqlite son viables para cargas predominantemente de lectura, el escalado horizontal de la API convierte al sistema de archivos local en un cuello de botella para la escritura concurrente.
 
 ### ¿Por qué?
 
-- **Concurrencia real**: varios asesores y varias instancias escribiendo a la vez.
-- **Fiabilidad operativa**: respaldos incrementales, PITR, réplicas y monitorización estándar.
-- **Analítica**: el historial es la materia prima para medir calidad y decidir qué ampliar en el
-  corpus; PostgreSQL permite analítica sin exportar el archivo.
-- **Coste operativo contenido**: una instancia gestionada o un contenedor con volumen persistente.
-- **Camino conocido**: la decisión queda detrás del protocolo, de modo que el cambio es local y
-  reversible, y la migración se puede hacer por pasos (doble escritura → verificación → corte).
+La elección de PostgreSQL se fundamenta en su capacidad de soportar concurrencia real con múltiples asesores e instancias escribiendo en simultáneo, respaldada por una robusta fiabilidad operativa que incluye respaldos incrementales, recuperación punto en el tiempo (PITR), réplicas de lectura y herramientas estándar de monitoreo. Además, habilita la explotación analítica directa del historial sin necesidad de exportar datos, permitiendo retroalimentar la calidad de las respuestas y detectar vacíos en el corpus documental. Todo ello se logra con un costo operativo predecible (mediante instancias gestionadas en la nube o contenedores con volúmenes persistentes) y siguiendo un proceso de migración de bajo riesgo, estructurado y reversible en etapas gracias al desacoplamiento de la interfaz (doble escritura, verificación y corte definitivo).
