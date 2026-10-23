@@ -20,16 +20,15 @@ def test_valores_por_defecto() -> None:
     assert configuracion.hay_credencial_proveedor is False
 
 
-def test_credencial_api_key2_es_valida() -> None:
-    """OPENROUTER_API_KEY2 es reconocida como credencial valida del proveedor."""
+def test_openrouter_api_key_es_la_credencial() -> None:
+    """OPENROUTER_API_KEY es la unica credencial valida del proveedor."""
     configuracion = Settings(
         _env_file=None,
-        openrouter_api_key=None,
-        openrouter_api_key2="sk-or-v1-prueba123",
+        openrouter_api_key="sk-or-v1-prueba123",
     )
 
     assert configuracion.hay_credencial_proveedor is True
-    assert configuracion.openrouter_api_key2 == "sk-or-v1-prueba123"
+    assert configuracion.openrouter_api_key == "sk-or-v1-prueba123"
 
 
 def test_origenes_permitidos_por_defecto() -> None:
