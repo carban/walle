@@ -170,7 +170,7 @@ describe('Panel lateral con el historial', () => {
     await usuario.click(within(panel).getByText('tercera consulta'))
     await screen.findByText('El monto máximo es $50.000.000.')
 
-    await usuario.click(screen.getByRole('button', { name: /nueva conversación/i }))
+    await usuario.click(screen.getByRole('button', { name: /nueva pregunta/i }))
 
     expect(screen.queryByText('El monto máximo es $50.000.000.')).not.toBeInTheDocument()
     expect(screen.getByText(/¿En qué puedo ayudarte\?/)).toBeInTheDocument()

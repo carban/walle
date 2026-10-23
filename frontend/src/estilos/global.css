@@ -67,8 +67,10 @@ body {
   height: 100%;
 }
 
+/* Sin el panel el chat es el unico hijo del grid: si la primera columna mide
+   0 px, el chat se coloca ahi y desaparece por completo. */
 .aplicacion--sin-panel {
-  grid-template-columns: 0 1fr;
+  grid-template-columns: 1fr;
 }
 
 .principal {
