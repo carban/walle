@@ -122,16 +122,34 @@ El documento restringido no se toca: sigue fuera de la allowlist y nunca se abre
 ```bash
 # Backend
 uv sync                       # crea .venv e instala dependencias
+cp .env.example .env          # plantilla → configuración local (aquí va OPENROUTER_API_KEY)
 cd frontend && npm install    # instala las dependencias del frontend
 ```
 
 ## 5. Configuración
 
-Todo se configura por variables de entorno; el archivo `.env` (ignorado por git) las carga.
+Todo se configura por variables de entorno, pero hay dos archivos y **no son lo mismo**:
+
+| Archivo | ¿Versionado? | Para qué sirve |
+|---------|--------------|----------------|
+| `.env.example` | Sí (plantilla) | Documenta las variables y sus valores por defecto. **No se edita ni lleva credenciales.** |
+| `.env` | No (está en `.gitignore`) | Archivo real que carga la aplicación. **Aquí va `OPENROUTER_API_KEY`** con la clave auténtica. |
+
+```bash
+cp .env.example .env
+# abrir .env y pegar la clave real:
+# OPENROUTER_API_KEY=sk-or-...   ← solo en .env; .env.example nunca la lleva
+```
+
+En resumen: `.env.example` es la **referencia** de qué se puede configurar; `.env` es la **copia
+local** donde se pega la clave de OpenRouter. Si solo se edita `.env.example`, la aplicación no
+lee la credencial.
+
+Variables disponibles en `.env`:
 
 | Variable | Por defecto | Descripción |
 |----------|-------------|-------------|
-| `OPENROUTER_API_KEY` | — | Credencial del proveedor. **Sin ella el sistema opera en modo degradado** (respuesta extractiva local) |
+| `OPENROUTER_API_KEY` | — | Credencial del proveedor, definida **solo en `.env`**. **Sin ella el sistema opera en modo degradado** (respuesta extractiva local) |
 | `WALLE_MODELO` | `cohere/north-mini-code:free` | Modelo principal (gratuito) |
 | `WALLE_TIMEOUT_SEGUNDOS` | `30` | Timeout de la invocación al proveedor |
 | `WALLE_REINTENTOS` | `1` | Reintentos ante 429/5xx |
@@ -151,7 +169,7 @@ Del lado del frontend (`frontend/.env`, variables `VITE_*`):
 | `VITE_API_URL_FALLBACK` | `http://127.0.0.1:8000` | URL a la que se reintenta si la petición principal no llega a la API (build servido como estático) |
 
 ```bash
-cp .env.example .env   # y completar OPENROUTER_API_KEY
+cp frontend/.env.example frontend/.env   # solo variables VITE_*; no lleva secretos
 ```
 
 ## 6. Ejecución
@@ -308,7 +326,8 @@ pantalla estrecha) queda documentado en el apartado 6.2.
   sustituye por la respuesta extractiva local.
 - **Mínimo registro**: se persiste lo ya validado; en un bloqueo se guarda el mensaje genérico, nunca
   el contenido filtrado.
-- **Credenciales**: solo en `.env` (ignorado por git); ninguna traza las incluye.
+- **Credenciales**: solo en `.env` (ignorado por git); ninguna traza las incluye. `.env.example` se
+  versiona **vacío**: es la plantilla de configuración, nunca el archivo donde se escribe la clave.
 - **Sin `dangerouslySetInnerHTML`**: el frontend renderiza todo como texto plano.
 
 ## 9. Limitaciones
