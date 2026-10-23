@@ -177,13 +177,13 @@ Característica: Persistencia e historial de consultas del asistente Walle
 
 | Requisito | Escenario Gherkin | Prueba prevista |
 |-----------|------------------|-----------------|
-| RF-01 | Registro exitoso, sin información suficiente, bloqueada | `tests/unit/test_repositorio.py` |
+| RF-01 | Registro exitoso, sin información suficiente, bloqueada | `tests/unit/test_repositorio.py`, `tests/unit/test_repositorio_sqlite.py` |
 | RF-02 | Listado de todas las consultas, historial vacío, paginación | `tests/integration/test_api_historial.py`, `tests/integration/test_api_consultas.py` |
 | RF-03 | Consulta por índice, índice inexistente | `tests/integration/test_api_historial.py`, `tests/integration/test_api_consultas.py` |
 | RF-04 | Borrado por índice, índice inexistente | `tests/integration/test_api_historial.py`, `tests/integration/test_api_consultas.py` |
 | RF-05 | Registro bloqueada, base no disponible | `tests/unit/test_repositorio.py`, `tests/unit/test_repositorio_sqlite.py`, `tests/integration/test_api_historial.py` |
 | RNF-01 | Rendimiento de escritura y lectura | `tests/unit/test_rendimiento_persistencia.py` (no bloqueante) |
-| RNF-02 | Reinicio de la aplicación | `tests/unit/test_repositorio.py` |
-| RNF-03 | Ruta configurable y portable | `tests/unit/test_repositorio.py` |
+| RNF-02 | Reinicio de la aplicación | `tests/unit/test_repositorio_sqlite.py`, `tests/integration/test_api_historial.py` |
+| RNF-03 | Ruta configurable y portable | `tests/unit/test_repositorio_sqlite.py` |
 | RNF-04 | Escrituras concurrentes | `tests/unit/test_repositorio_sqlite.py` |
-| RNF-05 | Parámetros vinculados y fallo de persistencia | `tests/unit/test_repositorio.py` |
+| RNF-05 | Parámetros vinculados y fallo de persistencia | `tests/unit/test_repositorio_sqlite.py` |

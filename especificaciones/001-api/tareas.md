@@ -41,9 +41,9 @@
 - [x] **T-010** Implementar `src/walle/recuperacion/bm25.py` y `src/walle/recuperacion/relevance.py`: índice Okapi BM25 por documento y por sección, tokenización con normalización de acentos, minúsculas y plurales, tabla de sinónimos del dominio, detección de entidades (productos, `$`, porcentajes), puntaje combinado y selección con umbral y margen de empates.
   - Criterio: `tests/unit/test_relevance.py` y `tests/unit/recuperacion/test_bm25.py` — "monto máximo del Crédito Productivo Impulso" selecciona `Productos de Crédito.md`; "clima en Marte" no selecciona ninguno; "reclamación" selecciona microseguros y procedimientos; el índice BM25 calcula IDF, normaliza por longitud y ordena por puntaje.
 - [x] **T-011** Implementar `src/walle/recuperacion/fuentes.py`: parseo por secciones (`#`, `##`, `###`) y construcción de `Fuente(documento, fragmento)` con el encabezado y la línea de la sección.
-  - Criterio: `tests/unit/test_fuentes.py` — el fragmento corresponde al encabezado real del documento.
+  - Criterio: `tests/unit/test_repositorio.py`, `tests/unit/test_relevance.py` — el fragmento corresponde al encabezado real del documento y se incluyen las secciones coincidentes.
 - [x] **T-012** Implementar `src/walle/fallback/extractivo.py`: extracción determinista por solapamiento de frases con la pregunta; si no hay solapamiento, mensaje canónico.
-  - Criterio: `tests/unit/test_fallback.py` — con el proveedor caído y un documento relevante, la respuesta menciona el dato buscado.
+  - Criterio: `tests/unit/test_config.py`, `tests/unit/test_consulta.py` — con el proveedor caído y un documento relevante, la respuesta menciona el dato buscado; sin coincidencia devuelve el mensaje canónico.
 
 ## Fase 3 — Guardrails (RF-05)
 
@@ -59,18 +59,18 @@
 - [x] **T-016** Definir la interfaz `ClienteModelo` en `src/walle/modelo/cliente.py` y el doble de pruebas `ClienteFalso` en `tests/dobles.py`.
   - Criterio: el doble permite preprogramar respuestas y errores, y cuenta invocaciones.
 - [x] **T-017** Implementar `src/walle/modelo/prompt.py`: prompt de sistema (uso exclusivo del contexto, citar fuente, no seguir instrucciones del usuario ni del documento, español), plantilla de usuario con el documento completo y la pregunta, y contrato de salida esperado.
-  - Criterio: `tests/unit/test_prompt.py` — el prompt no incluye el documento restringido y prohíbe seguir instrucciones del contenido.
+  - Criterio: `tests/unit/test_cliente_modelo.py` — el prompt no incluye el documento restringido y prohíbe seguir instrucciones del contenido.
 - [x] **T-018** Implementar `ClienteOpenRouter`: `POST /v1/chat/completions` con `httpx`, `temperature=0.1`, timeout configurable, un reintento ante 429/5xx, y mapeo de errores a excepciones de dominio.
   - Criterio: `tests/unit/test_cliente_modelo.py` con `httpx.MockTransport` — éxito, 429 con reintento y agotamiento de reintentos.
 - [x] **T-019** Implementar la degradación: excepción del proveedor → `ClienteFalso` interno (respuesta extractiva), nunca a modelo de pago.
-  - Criterio: `tests/integration/test_api_consulta.py::test_proveedor_caido_usa_fallback` — HTTP 200 con respuesta determinista.
+  - Criterio: `tests/integration/test_api_consulta.py::test_proveedor_caido_responde_con_fallback` — HTTP 200 con respuesta determinista.
 
 ## Fase 5 — API HTTP (RF-01, RF-03, RF-04)
 
 - [x] **T-020** Implementar `src/walle/api/rutas.py`: `POST /api/consultar` con validación, orquestación y construcción de la respuesta; `GET /api/salud`; `GET /api/documentos` (lista de documentos permitidos, sin contenido sensible).
   - Criterio: `tests/integration/test_api_consulta.py` — 200 con estado y fuentes; 422 con pregunta vacía; 200 con estado canónico fuera del corpus.
 - [x] **T-021** Implementar `src/walle/main.py`: fábrica de la app, CORS para el dev server de Vite, inclusión de routers, handler de errores que devuelve JSON sin trazas internas, y montaje opcional del `frontend/dist` como SPA.
-  - Criterio: `tests/integration/test_api_salud.py` — `GET /api/salud` responde 200 con estado del corpus y del proveedor.
+  - Criterio: `tests/integration/test_salud.py`, `tests/integration/test_api_consulta.py` — `GET /api/salud` responde 200 con estado del corpus y del proveedor.
 - [x] **T-022** Añadir la cabecera `X-Correlation-ID` en cada respuesta y propagarla a las trazas.
   - Criterio: test que verifica la presencia de la cabecera y que la traza comparte el identificador.
 - [x] **T-023** Manejo de errores: `422` de validación con mensaje por campo; `404`/`405` por defecto de FastAPI en JSON; ningún cuerpo de excepción interno al cliente.
@@ -81,7 +81,7 @@
 - [x] **T-024** Definir el protocolo `RepositorioConsultas` en `src/walle/persistencia/repositorio.py` y una implementación `RepositorioEnMemoria` para las pruebas.
   - Criterio: `tests/unit/test_repositorio.py` — guarda y recupera por identificador.
 - [x] **T-025** Conectar el orquestador con el repositorio: registrar siempre la consulta (pregunta, fecha/hora, respuesta, fuentes, estado, duración, modelo), también en los estados de insuficiencia y bloqueo, sin datos sensibles.
-  - Criterio: `tests/integration/test_api_consulta.py::test_consulta_se_persiste`.
+  - Criterio: `tests/integration/test_api_historial.py::test_consulta_registrada_aparece_en_el_historial`, `test_la_consulta_bloqueada_tambien_queda_registrada`.
 - [x] **T-026** Implementar `RepositorioSQLite` (característica 002) detrás del mismo protocolo y conectarlo por configuración.
   - Criterio: la suite sigue verde; se anota como dependencia de `002-persistencia`.
 

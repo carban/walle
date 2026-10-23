@@ -29,7 +29,7 @@
 - [x] **T-206** Implementar `src/api/cliente.ts`: URL base desde `import.meta.env.VITE_API_URL` (por defecto `http://127.0.0.1:8000`, vacío ⇒ rutas relativas), `consultar`, `obtenerHistorial` (`GET /api/consultas?limite=200`), `obtenerConsulta` (`GET /api/consultas/{id}`), `borrarConsulta` (`DELETE /api/consultas/{id}`).
   - Criterio: pruebas unitarias con `fetch` simulado verifican URL, método y cuerpo de cada llamada.
 - [x] **T-207** Traducir errores: `422` → `ErrorValidacion` con el mensaje del servidor; fallo de red o `5xx` → `ErrorServidor` con mensaje accionable; nunca incluir `stack` ni trazas.
-  - Criterio: `tests/cliente.test.ts` cubre 200, 422, 500 y excepción de red.
+  - Criterio: `frontend/src/__tests__/cliente.test.ts` cubre 200, 422, 500 y excepción de red.
 
 ## Fase 3 — Estilos y layout
 

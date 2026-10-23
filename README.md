@@ -320,8 +320,7 @@ pantalla estrecha) queda documentado en el apartado 6.2.
   cae en "sin información suficiente".
 - El modelo no tiene memoria conversacional: cada pregunta se resuelve de forma independiente.
 - Sin autenticación: la API asume un despliegue interno y de confianza.
-- El historial no tiene paginación (suficiente para el volumen local, no para una escala de cientos
-  de miles de filas).
+- El historial se pagina con `limite` y `desplazamiento`, pero el panel lateral pide una sola página de hasta 200 entradas; no hay búsqueda ni filtros por fecha.
 - La base es un archivo: no sirve para varios procesos escribiendo a la vez en red.
 
 ## 10. Mejoras futuras

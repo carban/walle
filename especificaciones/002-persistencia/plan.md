@@ -141,11 +141,12 @@ src/walle/persistencia/
 
 | Nivel | Contenido | Notas |
 |-------|-----------|-------|
-| `tests/unit/test_repositorio.py` | Alta, lectura por índice, listado ordenado, borrado, índices inexistentes, estado bloqueado sin contenido sensible, reinicio sobre la misma base, ruta configurable | SQLite en archivo temporal (`tmp_path`) y en memoria (`:memory:`) |
+| `tests/unit/test_repositorio.py` | Protocolo en memoria: alta, lectura por índice, listado ordenado, borrado e índices inexistentes | `RepositorioEnMemoria`; no toca SQLite |
+| `tests/unit/test_repositorio_sqlite.py` | SQLite: alta, lectura, esquema idempotente, versión, reinicio, parámetros vinculados, modo degradado y concurrencia | SQLite en archivo temporal (`tmp_path`) y `:memory:` |
 | `tests/unit/test_rendimiento_persistencia.py` | 1000 inserciones y lectura del historial por debajo de los umbrales de RNF-01 | Test informativo: registra la duración y falla solo si excede un margen amplio, para no ser flaky en CI lento |
-| `tests/integration/test_api_historial.py` | Los tres endpoints con `TestClient`: 200, 404 y efecto real del borrado | Repositorio SQLite en archivo temporal inyectado por configuración |
-| `tests/unit/test_repositorio_sqlite.py` | Diez consultas simultáneas → diez filas, sin "database is locked" | Threads con `threading.Thread` |
-| `tests/integration/test_api_historial.py`, `tests/unit/test_repositorio_sqlite.py` | `persistencia.disponible` en `true` y en `false` (ruta inválida) | Modo degradado |
+| `tests/integration/test_api_historial.py` | Los tres endpoints con `TestClient`: 200, 404, efecto real del borrado, consulta persistida, reinicio y salud | Repositorio SQLite en archivo temporal inyectado por configuración |
+| `tests/integration/test_api_consultas.py` | Paginación, alias `/api/historial` y 404 del recurso canónico | Mismo repositorio inyectado |
+| `tests/integration/test_api_historial.py`, `tests/unit/test_repositorio_sqlite.py` | `persistencia.disponible` en `true` (API) y en `false` (ruta inválida) | Modo degradado |
 
 **Reglas de la suite**
 
