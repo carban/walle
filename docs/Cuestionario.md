@@ -129,7 +129,7 @@ observadas:
    corpus es pequeño y el modelo puede leerlo entero.
 2. **Híbrido**: añadir embeddings (locales, para no enviar el corpus a un tercero) y combinar la
    puntuación semántica con la léxica. Resuelve las paráfrasis que la coincidencia de términos no
-   captura.
+   captura. Esto robustese la solución agregando búsqueda y segmentación semántica con el posible uso de una base de datos vecotiral.
 3. **Troceado selectivo**: solo cuando los documentos crezcan; trocear por sección y recuperar los
    fragmentos más relevantes, manteniendo la cita de documento + sección.
 4. **Reranking y memoria**: un reranker ligero sobre los candidatos y un registro de las consultas
@@ -266,7 +266,7 @@ Por su nula sobrecarga operativa en un despliegue local y monousuario, sin servi
 
 ### ¿Qué ventajas tiene para este escenario?
 
-Para este escenario específico, SQLite aporta una simplicidad operativa insuperable al residir toda la persistencia en un único archivo local, facilitando copias de respaldo y portabilidad inmediata entre cualquier sistema operativo sin requerir administración de infraestructura. A su vez, garantiza privacidad por diseño al mantener los datos de las consultas de los asesores fuera del control de versiones (`.gitignore`), todo ello con costo cero de infraestructura y aprovechando las librerías nativas del lenguaje sin dependencias externas adicionales.
+Para este escenario específico, SQLite aporta una simplicidad operativa al residir toda la persistencia en un único archivo local, facilitando copias de respaldo y portabilidad inmediata entre cualquier sistema operativo sin requerir administración de infraestructura. A su vez, garantiza privacidad por diseño al mantener los datos de las consultas de los asesores fuera del control de versiones (`.gitignore`), todo ello con costo cero de infraestructura y aprovechando las librerías nativas del lenguaje sin dependencias externas adicionales.
 
 ---
 
@@ -274,16 +274,28 @@ Para este escenario específico, SQLite aporta una simplicidad operativa insuper
 
 ### ¿Mantendría la misma solución de persistencia?
 
-**No en el motor, sí en el diseño.** Mantendría el **contrato** (`RepositorioConsultas`), el modelo
-de datos y el esquema conceptual —son válidos para producción—, pero no el motor local.
+**No en el motor, sí en el diseño.** Mantendría el **contrato** (`RepositorioConsultas`), el modelo de datos y el esquema conceptual —son perfectamente válidos y desacoplados para producción—, pero sustituiría el motor local (SQLite).
 
-En producción el historial pasa a ser un **activo compartido**: varios usuarios, varias instancias
-de la API y necesidad de respaldos y consultas analíticas. SQLite en un archivo local no cubre eso.
+En un entorno productivo con alta concurrencia, el almacenamiento cumple dos roles críticos que un archivo SQLite local no puede sostener: primero, el historial conversacional y de auditoría pasa a ser un **activo compartido** entre múltiples instancias de la API distribuidas horizontalmente; segundo, ante un crecimiento proyectado del corpus documental, la persistencia debe evolucionar para servir como **base de datos documental y vectorial**, permitiendo indexar y recuperar representaciones semánticas (embeddings) de manera eficiente y escalable.
 
 ### ¿Qué motor de base de datos utilizaría?
 
-En un entorno de producción distribuido se utilizaría **PostgreSQL** como base del historial. PostgreSQL cubre de manera óptima el perfil transaccional de un entorno con múltiples instancias de API escribiendo concurrentemente de forma sostenida, proporcionando respaldos en caliente y capacidades nativas de analítica sobre el historial (fundamentales para auditar qué consultas fallan o quedan sin información suficiente). La migración resulta técnicamente directa y de bajo riesgo gracias a que la capa de persistencia está encapsulada tras el protocolo `RepositorioConsultas`, permitiendo desplegar una nueva implementación que conserve idéntico esquema, columnas e índices. Si bien arquitecturas como SQLite con LiteFS o rqlite son viables para cargas predominantemente de lectura, el escalado horizontal de la API convierte al sistema de archivos local en un cuello de botella para la escritura concurrente.
+En producción utilizaría **PostgreSQL (versión ≥ 15 o 16)** equipado con la extensión nativa **`pgvector`** (o servicios gestionados equivalentes como AWS RDS/Aurora for PostgreSQL, Cloud SQL o Supabase).
+
+Esta elección transforma a PostgreSQL en un motor dual: actúa simultáneamente como **almacén transaccional y analítico relacional** para el historial de consultas (auditoría, estados, duraciones, métricas) y como **base de datos vectorial centralizada** para almacenar los embeddings del corpus documental y de las preguntas entrantes. La migración del historial es directa gracias al protocolo `RepositorioConsultas`, mientras que para la recuperación semántica permite incorporar un adaptador de recuperación vectorial indexado mediante estructuras de alta velocidad como **HNSW** (Hierarchical Navigable Small World) o **IVFFlat**.
 
 ### ¿Por qué?
 
-La elección de PostgreSQL se fundamenta en su capacidad de soportar concurrencia real con múltiples asesores e instancias escribiendo en simultáneo, respaldada por una robusta fiabilidad operativa que incluye respaldos incrementales, recuperación punto en el tiempo (PITR), réplicas de lectura y herramientas estándar de monitoreo. Además, habilita la explotación analítica directa del historial sin necesidad de exportar datos, permitiendo retroalimentar la calidad de las respuestas y detectar vacíos en el corpus documental. Todo ello se logra con un costo operativo predecible (mediante instancias gestionadas en la nube o contenedores con volúmenes persistentes) y siguiendo un proceso de migración de bajo riesgo, estructurado y reversible en etapas gracias al desacoplamiento de la interfaz (doble escritura, verificación y corte definitivo).
+La elección de PostgreSQL con soporte vectorial (`pgvector`) responde a ventajas arquitectónicas, operativas y de rendimiento decisivas:
+
+1. **Unificación arquitectónica (Single Engine Architecture)**:
+   Evita la complejidad operativa y el sobrecosto de mantener dos infraestructuras independientes (una base relacional como PostgreSQL y una base vectorial especializada como Pinecone, Milvus o Qdrant). Toda la gestión de copias de seguridad (PITR), monitoreo, replicación de lectura y seguridad se centraliza en un único clúster maduro y de estándar industrial.
+
+2. **Recuperación altamente eficiente para corpus grandes**:
+   En el escenario actual, los documentos se leen en memoria y se procesan léxicamente con BM25. Si el corpus escala a cientos o miles de documentos, normativas extensas y manuales operativos, transferir documentos completos en memoria se vuelve inviable. Con `pgvector`, cada documento se fragmenta (chunking con metadatos de título y sección) y se almacena junto a su vector de embedding. PostgreSQL ejecuta búsquedas de vecinos más cercanos (ANN con distancia coseno o producto interno) en milisegundos mediante índices HNSW, recuperando únicamente los fragmentos semánticamente más afines.
+
+3. **Capacidad de búsqueda híbrida nativa (Léxica + Semántica)**:
+   PostgreSQL permite combinar en una única consulta SQL la búsqueda léxica tradicional (`tsvector`/Full-Text Search con pesos y diccionarios en español) con la similitud vectorial (`vector <-> vector`), consolidando los resultados mediante *Reciprocal Rank Fusion* (RRF). Esto supera la limitación del vocabulario estricto de BM25 y captura tanto sinónimos y paráfrasis como términos técnicos exactos y cifras numéricas (`$50.000.000`).
+
+4. **Concurrencia, fiabilidad y gobernanza de datos**:
+   Soporta miles de conexiones concurrentes de múltiples instancias de la API mediante pooling (PgBouncer), transacciones ACID completas, respaldos incrementales en caliente y réplicas de lectura para desacoplar las consultas analíticas del tráfico transaccional. Además, habilita políticas de seguridad a nivel de fila (Row Level Security - RLS) para garantizar de manera determinista que ningún fragmento restringido sea accesible.
